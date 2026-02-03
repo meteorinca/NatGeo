@@ -17,26 +17,26 @@
     --success-glow: rgba(40, 167, 69, 0.4);
     --error-red: #dc3545;
     --error-glow: rgba(220, 53, 69, 0.4);
-    
+
     /* Neutrals */
     --bg-cream: #f5f0e8;
     --bg-card: rgba(255, 255, 255, 0.95);
     --text-dark: #2c3e50;
     --text-muted: #6c757d;
     --border-light: rgba(0, 0, 0, 0.1);
-    
+
     /* Glass morphism */
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(255, 255, 255, 0.3);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    
+
     /* Spacing */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 16px;
     --space-lg: 24px;
     --space-xl: 32px;
-    
+
     /* Typography */
     --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-size-sm: 0.875rem;
@@ -44,13 +44,13 @@
     --font-size-lg: 1.25rem;
     --font-size-xl: 1.75rem;
     --font-size-2xl: 2.5rem;
-    
+
     /* Border radius */
     --radius-sm: 6px;
     --radius-md: 12px;
     --radius-lg: 20px;
     --radius-full: 50px;
-    
+
     /* Transitions */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s ease;
@@ -58,7 +58,9 @@
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -324,56 +326,101 @@ body {
 
 .drop-zone {
     position: absolute;
-    background: rgba(255, 255, 255, 0.6);
-    border: 2px dashed rgba(0, 0, 0, 0.3);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 10px;
-    font-weight: 600;
+    background: rgba(255, 255, 255, 0.75);
+    border: 3px dashed rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 14px;
+    font-weight: 700;
     text-align: center;
     cursor: pointer;
     transition: all var(--transition-fast);
-    min-width: 50px;
+    min-width: 80px;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    /* 3D text shadow for visibility */
+    text-shadow:
+        1px 1px 0 rgba(255, 255, 255, 0.9),
+        -1px -1px 0 rgba(255, 255, 255, 0.9),
+        2px 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .drop-zone:hover,
 .drop-zone.hover {
-    background: rgba(212, 165, 23, 0.3);
+    background: rgba(212, 165, 23, 0.5);
     border-color: var(--accent-gold);
-    transform: scale(1.05);
+    border-style: solid;
+    transform: scale(1.08);
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.25),
+        0 0 20px rgba(212, 165, 23, 0.4);
 }
 
 .drop-zone.correct {
-    background: rgba(40, 167, 69, 0.85);
-    border: 2px solid var(--success-green);
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.95) 0%, rgba(32, 134, 55, 0.95) 100%);
+    border: 3px solid #1d9c40;
+    border-style: solid;
     color: white;
-    font-weight: 600;
-    box-shadow: 0 0 12px var(--success-glow);
-    animation: correctPulse 0.6s ease;
+    font-size: 15px;
+    font-weight: 700;
+    /* Strong 3D text for correct answers */
+    text-shadow:
+        1px 1px 0 rgba(0, 80, 0, 0.5),
+        2px 2px 4px rgba(0, 0, 0, 0.4),
+        0 0 10px rgba(255, 255, 255, 0.5);
+    box-shadow:
+        0 4px 12px rgba(40, 167, 69, 0.5),
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    animation: correctPulse 0.6s ease, glowPulse 2s ease-in-out infinite;
 }
 
 .drop-zone.incorrect {
     animation: shake 0.5s ease;
+    background: rgba(220, 53, 69, 0.3);
 }
 
 .drop-zone.country-zone {
-    background: rgba(45, 143, 106, 0.2);
+    background: rgba(45, 143, 106, 0.35);
+    border-color: rgba(45, 143, 106, 0.6);
 }
 
 .drop-zone.capital-zone {
-    background: rgba(224, 123, 83, 0.2);
+    background: rgba(224, 123, 83, 0.35);
+    border-color: rgba(224, 123, 83, 0.6);
 }
 
 .drop-zone .zone-label {
-    opacity: 0.7;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 20px;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(255, 255, 255, 0.8);
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+/* Placed item styling (when correctly placed) */
+.drop-zone .placed-icon {
+    font-size: 16px;
+    margin-right: 4px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.drop-zone .placed-text {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.drop-zone.correct .placed-text {
+    font-size: 14px;
 }
 
 /* Buttons */
@@ -556,27 +603,83 @@ body {
 
 /* Animations */
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-6px); }
-    80% { transform: translateX(6px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-8px);
+    }
+
+    40% {
+        transform: translateX(8px);
+    }
+
+    60% {
+        transform: translateX(-6px);
+    }
+
+    80% {
+        transform: translateX(6px);
+    }
 }
 
 @keyframes correctPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 4px 12px rgba(40, 167, 69, 0.5),
+            0 0 25px rgba(40, 167, 69, 0.6),
+            0 0 50px rgba(40, 167, 69, 0.3);
+    }
+
+    50% {
+        box-shadow:
+            0 4px 12px rgba(40, 167, 69, 0.7),
+            0 0 35px rgba(40, 167, 69, 0.8),
+            0 0 70px rgba(40, 167, 69, 0.5);
+    }
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 /* Mobile Responsive */
@@ -584,35 +687,40 @@ body {
     .header {
         padding: var(--space-sm) var(--space-md);
     }
-    
+
     .header-content h1 {
         font-size: var(--font-size-lg);
     }
-    
+
     .score-display {
         padding: var(--space-xs) var(--space-md);
     }
-    
+
     .score-value {
         font-size: var(--font-size-lg);
     }
-    
+
     .word-bank-section,
     .map-section {
         padding: var(--space-md);
     }
-    
+
     .word-item {
         font-size: 12px;
         padding: var(--space-xs) var(--space-sm);
     }
-    
+
     .drop-zone {
-        min-width: 40px;
-        font-size: 8px;
-        padding: 2px 4px;
+        min-width: 60px;
+        min-height: 28px;
+        font-size: 11px;
+        padding: var(--space-xs) var(--space-sm);
     }
-    
+
+    .drop-zone .zone-label {
+        font-size: 16px;
+    }
+
     .instructions-content {
         font-size: var(--font-size-sm);
     }
@@ -622,12 +730,12 @@ body {
     .app-container {
         padding: var(--space-sm);
     }
-    
+
     .header {
         flex-direction: column;
         text-align: center;
     }
-    
+
     .word-bank {
         max-height: 150px;
     }
@@ -654,13 +762,14 @@ body {
 
 /* Print styles - hide interactive elements */
 @media print {
+
     .word-bank-section,
     .instructions-panel,
     .score-display,
     #reset-btn {
         display: none;
     }
-    
+
     .labeled-map-overlay {
         opacity: 1 !important;
     }

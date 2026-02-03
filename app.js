@@ -158,14 +158,14 @@ function init() {
     } else {
         elements.reliefMap.onload = setupGame;
     }
-    
+
     // Event listeners
     elements.resetBtn.addEventListener('click', resetGame);
     elements.playAgainBtn.addEventListener('click', () => {
         elements.victoryModal.classList.remove('visible');
         resetGame();
     });
-    
+
     // Handle window resize for responsive drop zones
     window.addEventListener('resize', debounce(updateDropZonePositions, 250));
 }
@@ -185,10 +185,10 @@ function setupGame() {
 function createWordBank() {
     elements.wordBank.innerHTML = '';
     state.wordItems = [];
-    
+
     // Create array of all words (countries and capitals), then shuffle
     const allWords = [];
-    
+
     geographyData.forEach(item => {
         allWords.push({
             text: item.country,
@@ -203,10 +203,10 @@ function createWordBank() {
             matchId: `${item.id}-capital`
         });
     });
-    
+
     // Shuffle the words
     shuffleArray(allWords);
-    
+
     // Create DOM elements
     allWords.forEach(word => {
         const wordEl = document.createElement('div');
@@ -216,19 +216,19 @@ function createWordBank() {
         wordEl.dataset.id = word.id;
         wordEl.dataset.type = word.type;
         wordEl.draggable = true;
-        
+
         // Drag events (desktop)
         wordEl.addEventListener('dragstart', handleDragStart);
         wordEl.addEventListener('dragend', handleDragEnd);
-        
+
         // Touch events (mobile)
         wordEl.addEventListener('touchstart', handleTouchStart, { passive: false });
         wordEl.addEventListener('touchmove', handleTouchMove, { passive: false });
         wordEl.addEventListener('touchend', handleTouchEnd);
-        
+
         // Click for tap-to-select on mobile
         wordEl.addEventListener('click', handleWordClick);
-        
+
         elements.wordBank.appendChild(wordEl);
         state.wordItems.push(wordEl);
     });
@@ -241,13 +241,13 @@ function createWordBank() {
 function createDropZones() {
     elements.dropZones.innerHTML = '';
     state.dropZones = [];
-    
+
     geographyData.forEach(item => {
         // Country drop zone
         const countryZone = createDropZone(item, 'country', item.countryPos);
         elements.dropZones.appendChild(countryZone);
         state.dropZones.push(countryZone);
-        
+
         // Capital drop zone
         const capitalZone = createDropZone(item, 'capital', item.capitalPos);
         elements.dropZones.appendChild(capitalZone);
@@ -261,27 +261,27 @@ function createDropZone(item, type, position) {
     zone.dataset.matchId = `${item.id}-${type}`;
     zone.dataset.id = item.id;
     zone.dataset.type = type;
-    
+
     // Position the zone
     zone.style.left = `${position.x}%`;
     zone.style.top = `${position.y}%`;
     zone.style.transform = 'translate(-50%, -50%)';
-    
+
     // Add label hint
     const label = document.createElement('span');
     label.className = 'zone-label';
     label.textContent = type === 'country' ? '🏴' : '🏛️';
     zone.appendChild(label);
-    
+
     // Drag & drop events
     zone.addEventListener('dragover', handleDragOver);
     zone.addEventListener('dragenter', handleDragEnter);
     zone.addEventListener('dragleave', handleDragLeave);
     zone.addEventListener('drop', handleDrop);
-    
+
     // Touch/click events for tap-to-place
     zone.addEventListener('click', handleZoneClick);
-    
+
     return zone;
 }
 
@@ -301,7 +301,7 @@ function handleDragStart(e) {
     e.target.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', e.target.dataset.matchId);
-    
+
     // Clear any tap selection
     clearSelection();
 }
@@ -309,7 +309,7 @@ function handleDragStart(e) {
 function handleDragEnd(e) {
     e.target.classList.remove('dragging');
     draggedElement = null;
-    
+
     // Remove hover state from all zones
     state.dropZones.forEach(zone => zone.classList.remove('hover'));
 }
@@ -334,9 +334,9 @@ function handleDrop(e) {
     e.preventDefault();
     const zone = e.currentTarget;
     zone.classList.remove('hover');
-    
+
     if (zone.classList.contains('correct')) return;
-    
+
     const matchId = e.dataTransfer.getData('text/plain');
     attemptPlacement(matchId, zone);
 }
@@ -351,11 +351,11 @@ let touchStartPos = { x: 0, y: 0 };
 
 function handleTouchStart(e) {
     if (e.target.classList.contains('placed')) return;
-    
+
     touchedElement = e.target;
     const touch = e.touches[0];
     touchStartPos = { x: touch.clientX, y: touch.clientY };
-    
+
     // Create a clone for visual feedback
     touchClone = e.target.cloneNode(true);
     touchClone.style.position = 'fixed';
@@ -367,46 +367,46 @@ function handleTouchStart(e) {
     touchClone.style.top = `${touch.clientY}px`;
     touchClone.style.translate = '-50% -50%';
     document.body.appendChild(touchClone);
-    
+
     e.target.classList.add('dragging');
     e.preventDefault();
 }
 
 function handleTouchMove(e) {
     if (!touchClone) return;
-    
+
     const touch = e.touches[0];
     touchClone.style.left = `${touch.clientX}px`;
     touchClone.style.top = `${touch.clientY}px`;
-    
+
     // Check which drop zone we're over
     const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     state.dropZones.forEach(zone => zone.classList.remove('hover'));
-    
+
     if (elemBelow && elemBelow.classList.contains('drop-zone') && !elemBelow.classList.contains('correct')) {
         elemBelow.classList.add('hover');
     }
-    
+
     e.preventDefault();
 }
 
 function handleTouchEnd(e) {
     if (!touchedElement || !touchClone) return;
-    
+
     const touch = e.changedTouches[0];
     const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    
+
     // Clean up
     touchClone.remove();
     touchClone = null;
     touchedElement.classList.remove('dragging');
     state.dropZones.forEach(zone => zone.classList.remove('hover'));
-    
+
     // Check if dropped on a valid zone
     if (elemBelow && elemBelow.classList.contains('drop-zone') && !elemBelow.classList.contains('correct')) {
         attemptPlacement(touchedElement.dataset.matchId, elemBelow);
     }
-    
+
     touchedElement = null;
 }
 
@@ -417,14 +417,14 @@ function handleTouchEnd(e) {
 function handleWordClick(e) {
     const wordEl = e.target;
     if (wordEl.classList.contains('placed') || wordEl.classList.contains('dragging')) return;
-    
+
     // Check for double-tap vs selection
     if (state.selectedWord === wordEl) {
         // Double click - deselect
         clearSelection();
         return;
     }
-    
+
     // Select this word
     clearSelection();
     wordEl.classList.add('selected');
@@ -434,7 +434,7 @@ function handleWordClick(e) {
 function handleZoneClick(e) {
     const zone = e.currentTarget;
     if (zone.classList.contains('correct')) return;
-    
+
     if (state.selectedWord) {
         attemptPlacement(state.selectedWord.dataset.matchId, zone);
         clearSelection();
@@ -454,7 +454,7 @@ function clearSelection() {
 
 function attemptPlacement(wordMatchId, zone) {
     const zoneMatchId = zone.dataset.matchId;
-    
+
     if (wordMatchId === zoneMatchId) {
         // Correct placement!
         handleCorrectPlacement(wordMatchId, zone);
@@ -467,21 +467,25 @@ function attemptPlacement(wordMatchId, zone) {
 function handleCorrectPlacement(matchId, zone) {
     // Mark zone as correct
     zone.classList.add('correct');
-    
+
     // Find and update the word item
     const wordEl = state.wordItems.find(w => w.dataset.matchId === matchId);
     if (wordEl) {
         wordEl.classList.add('placed');
-        
-        // Update zone text to show the placed word
-        zone.innerHTML = wordEl.textContent;
+
+        // Create enhanced display for correct placement
+        const type = zone.dataset.type;
+        const icon = type === 'country' ? '🏴' : '🏛️';
+
+        // Build the display with icon and text
+        zone.innerHTML = `<span class="placed-icon">${icon}</span><span class="placed-text">${wordEl.textContent}</span>`;
     }
-    
+
     // Update state
     state.correctPlacements.add(matchId);
     state.placedCount++;
     updateScore();
-    
+
     // Check for victory
     if (state.placedCount >= state.totalItems) {
         triggerVictory();
@@ -490,7 +494,7 @@ function handleCorrectPlacement(matchId, zone) {
 
 function handleIncorrectPlacement(zone) {
     zone.classList.add('incorrect');
-    
+
     // Remove shake animation after it completes
     setTimeout(() => {
         zone.classList.remove('incorrect');
@@ -508,10 +512,10 @@ function updateScore() {
 function triggerVictory() {
     // Show labeled map overlay
     elements.labeledOverlay.classList.add('visible');
-    
+
     // Start fireworks
     startFireworks();
-    
+
     // Show victory modal after a brief delay
     setTimeout(() => {
         elements.victoryModal.classList.add('visible');
@@ -528,17 +532,17 @@ function resetGame() {
     state.placedCount = 0;
     state.correctPlacements.clear();
     state.selectedWord = null;
-    
+
     // Reset UI
     elements.labeledOverlay.classList.remove('visible');
     elements.victoryModal.classList.remove('visible');
-    
+
     // Recreate word bank and drop zones
     createWordBank();
     createDropZones();
-    
+
     updateScore();
-    
+
     // Stop fireworks if running
     stopFireworks();
 }
@@ -554,14 +558,14 @@ let particles = [];
 function startFireworks() {
     const canvas = elements.fireworksCanvas;
     const ctx = canvas.getContext('2d');
-    
+
     // Set canvas size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
+
     fireworks = [];
     particles = [];
-    
+
     function Firework(x, y, targetY) {
         this.x = x;
         this.y = y;
@@ -575,24 +579,24 @@ function startFireworks() {
         this.hue = Math.random() * 360;
         this.alive = true;
     }
-    
-    Firework.prototype.update = function() {
+
+    Firework.prototype.update = function () {
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > this.maxTrail) {
             this.trail.shift();
         }
-        
+
         this.x += this.vx;
         this.y += this.vy;
         this.vy += 0.05; // gravity
-        
+
         if (this.y <= this.targetY || this.vy >= 0) {
             this.explode();
             this.alive = false;
         }
     };
-    
-    Firework.prototype.draw = function() {
+
+    Firework.prototype.draw = function () {
         ctx.beginPath();
         for (let i = 0; i < this.trail.length; i++) {
             const alpha = i / this.trail.length;
@@ -604,21 +608,21 @@ function startFireworks() {
             }
         }
         ctx.stroke();
-        
+
         // Draw head
         ctx.beginPath();
         ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
         ctx.fillStyle = `hsl(${this.hue}, 100%, 80%)`;
         ctx.fill();
     };
-    
-    Firework.prototype.explode = function() {
+
+    Firework.prototype.explode = function () {
         const particleCount = 60 + Math.floor(Math.random() * 40);
         for (let i = 0; i < particleCount; i++) {
             particles.push(new Particle(this.x, this.y, this.hue));
         }
     };
-    
+
     function Particle(x, y, hue) {
         this.x = x;
         this.y = y;
@@ -632,8 +636,8 @@ function startFireworks() {
         this.gravity = 0.08;
         this.size = 2 + Math.random() * 2;
     }
-    
-    Particle.prototype.update = function() {
+
+    Particle.prototype.update = function () {
         this.vx *= 0.98;
         this.vy *= 0.98;
         this.vy += this.gravity;
@@ -641,23 +645,23 @@ function startFireworks() {
         this.y += this.vy;
         this.alpha -= this.decay;
     };
-    
-    Particle.prototype.draw = function() {
+
+    Particle.prototype.draw = function () {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`;
         ctx.fill();
     };
-    
+
     let frameCount = 0;
-    
+
     function animate() {
         fireworksAnimationId = requestAnimationFrame(animate);
-        
+
         // Fade out previous frame
         ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         // Launch new fireworks
         if (frameCount % 30 === 0) {
             const x = Math.random() * canvas.width;
@@ -665,7 +669,7 @@ function startFireworks() {
             const targetY = 100 + Math.random() * (canvas.height * 0.4);
             fireworks.push(new Firework(x, y, targetY));
         }
-        
+
         // Update and draw fireworks
         for (let i = fireworks.length - 1; i >= 0; i--) {
             fireworks[i].update();
@@ -674,7 +678,7 @@ function startFireworks() {
                 fireworks.splice(i, 1);
             }
         }
-        
+
         // Update and draw particles
         for (let i = particles.length - 1; i >= 0; i--) {
             particles[i].update();
@@ -683,15 +687,15 @@ function startFireworks() {
                 particles.splice(i, 1);
             }
         }
-        
+
         frameCount++;
-        
+
         // Stop after some time
         if (frameCount > 600) {
             stopFireworks();
         }
     }
-    
+
     animate();
 }
 
@@ -700,12 +704,12 @@ function stopFireworks() {
         cancelAnimationFrame(fireworksAnimationId);
         fireworksAnimationId = null;
     }
-    
+
     // Clear canvas
     const canvas = elements.fireworksCanvas;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     fireworks = [];
     particles = [];
 }
