@@ -1,132 +1,122 @@
 /**
- * South America Geography Quiz - Interactive Drag & Drop
+ * South America Geography Quiz
+ * Interactive Map Quiz with Hoverable Country Regions
  * 
- * Design Philosophy:
- * - Direct to Action: Map loads immediately with all interactions ready
- * - Mobile Compatible: Touch events + click fallback for accessibility
- * - Immediate Feedback: Visual confirmation on correct/incorrect placement
- * - Celebration: Fireworks animation on completion
+ * Features:
+ * - Click-to-answer quiz format
+ * - Hoverable country regions that light up
+ * - 3 attempts per question with decreasing points
+ * - Timer and score tracking
+ * - Fireworks celebration on completion
  */
 
 // ============================================
-// Data: Countries and Capitals with Map Positions
+// Geography Data with SVG Polygon Coordinates
 // ============================================
 
 const geographyData = [
-    // Countries and their capitals with approximate positions (as percentages)
-    // Positions are calibrated for the unlabeledReliefMap.png
     {
-        id: 'argentina',
-        country: 'Argentina',
-        capital: 'Buenos Aires',
-        countryPos: { x: 38, y: 75 },
-        capitalPos: { x: 50, y: 72 }
-    },
-    {
-        id: 'bolivia',
-        country: 'Bolivia',
-        capital: 'Sucre',
-        capitalAlt: 'La Paz',
-        countryPos: { x: 38, y: 48 },
-        capitalPos: { x: 40, y: 45 }
-    },
-    {
-        id: 'brazil',
-        country: 'Brazil',
-        capital: 'Brasília',
-        countryPos: { x: 65, y: 40 },
-        capitalPos: { x: 68, y: 48 }
-    },
-    {
-        id: 'chile',
-        country: 'Chile',
-        capital: 'Santiago',
-        countryPos: { x: 24, y: 62 },
-        capitalPos: { x: 30, y: 68 }
+        id: 'venezuela',
+        name: 'Venezuela',
+        capital: 'Caracas',
+        // Polygon coordinates as percentage of image (will be converted to viewBox coords)
+        polygon: '270,45 320,35 380,50 400,75 380,100 340,110 300,100 270,85'
     },
     {
         id: 'colombia',
-        country: 'Colombia',
+        name: 'Colombia',
         capital: 'Bogotá',
-        countryPos: { x: 25, y: 18 },
-        capitalPos: { x: 20, y: 15 }
+        polygon: '180,80 230,60 280,70 300,100 280,140 240,170 200,160 160,130 170,100'
     },
     {
         id: 'ecuador',
-        country: 'Ecuador',
+        name: 'Ecuador',
         capital: 'Quito',
-        countryPos: { x: 15, y: 28 },
-        capitalPos: { x: 12, y: 25 }
-    },
-    {
-        id: 'guyana',
-        country: 'Guyana',
-        capital: 'Georgetown',
-        countryPos: { x: 55, y: 10 },
-        capitalPos: { x: 58, y: 8 }
-    },
-    {
-        id: 'paraguay',
-        country: 'Paraguay',
-        capital: 'Asunción',
-        countryPos: { x: 52, y: 58 },
-        capitalPos: { x: 48, y: 56 }
+        polygon: '140,170 180,160 200,175 190,210 160,230 130,210 130,185'
     },
     {
         id: 'peru',
-        country: 'Peru',
+        name: 'Peru',
         capital: 'Lima',
-        countryPos: { x: 22, y: 38 },
-        capitalPos: { x: 12, y: 35 }
+        polygon: '130,210 165,230 200,250 220,290 200,350 170,390 140,380 100,320 90,260 110,220'
     },
     {
-        id: 'suriname',
-        country: 'Suriname',
-        capital: 'Paramaribo',
-        countryPos: { x: 62, y: 12 },
-        capitalPos: { x: 60, y: 9 }
+        id: 'brazil',
+        name: 'Brazil',
+        capital: 'Brasília',
+        polygon: '280,100 340,110 400,100 450,90 500,110 530,150 520,220 500,280 480,340 440,400 380,440 320,450 280,400 260,340 280,280 300,220 280,160'
+    },
+    {
+        id: 'bolivia',
+        name: 'Bolivia',
+        capital: 'Sucre',
+        polygon: '200,350 260,340 290,380 310,420 280,460 240,470 200,440 180,400'
+    },
+    {
+        id: 'paraguay',
+        name: 'Paraguay',
+        capital: 'Asunción',
+        polygon: '290,420 340,410 370,450 360,500 320,520 280,500 280,460'
+    },
+    {
+        id: 'chile',
+        name: 'Chile',
+        capital: 'Santiago',
+        polygon: '140,380 180,400 200,450 210,520 200,580 185,650 170,720 155,750 140,720 145,650 155,580 165,520 170,450 155,400'
+    },
+    {
+        id: 'argentina',
+        name: 'Argentina',
+        capital: 'Buenos Aires',
+        polygon: '200,450 250,470 290,500 330,520 360,560 350,620 320,680 280,720 250,750 220,720 200,660 180,600 175,540 185,480'
     },
     {
         id: 'uruguay',
-        country: 'Uruguay',
+        name: 'Uruguay',
         capital: 'Montevideo',
-        countryPos: { x: 55, y: 72 },
-        capitalPos: { x: 58, y: 75 }
+        polygon: '340,540 380,530 400,560 390,600 360,610 340,580'
     },
     {
-        id: 'venezuela',
-        country: 'Venezuela',
-        capital: 'Caracas',
-        countryPos: { x: 42, y: 8 },
-        capitalPos: { x: 48, y: 5 }
+        id: 'guyana',
+        name: 'Guyana',
+        capital: 'Georgetown',
+        polygon: '380,55 410,45 440,60 450,90 430,110 400,100 385,75'
+    },
+    {
+        id: 'suriname',
+        name: 'Suriname',
+        capital: 'Paramaribo',
+        polygon: '430,45 460,40 485,55 490,85 470,100 450,90 440,60'
     },
     {
         id: 'french-guiana',
-        country: 'French Guiana',
+        name: 'French Guiana',
         capital: 'Cayenne',
-        countryPos: { x: 72, y: 12 },
-        capitalPos: { x: 70, y: 9 }
+        polygon: '475,40 510,45 520,75 510,95 485,90 480,60'
     },
     {
         id: 'falkland',
-        country: 'Falkland Islands',
+        name: 'Falkland Islands',
         capital: 'Stanley',
-        countryPos: { x: 52, y: 92 },
-        capitalPos: { x: 58, y: 90 }
+        polygon: '310,730 350,725 370,745 355,760 320,760 305,745'
     }
 ];
 
 // ============================================
-// State Management
+// Quiz State
 // ============================================
 
 let state = {
-    placedCount: 0,
-    totalItems: 0,
-    selectedWord: null,
-    correctPlacements: new Set(),
-    wordItems: [],
-    dropZones: []
+    isPlaying: false,
+    questions: [],
+    currentQuestionIndex: 0,
+    currentAttempts: 3,
+    score: 0,
+    totalQuestions: 0,
+    correctAnswers: 0,
+    timerInterval: null,
+    elapsedSeconds: 0,
+    completedCountries: new Set()
 };
 
 // ============================================
@@ -134,15 +124,26 @@ let state = {
 // ============================================
 
 const elements = {
-    wordBank: document.getElementById('word-bank'),
-    dropZones: document.getElementById('drop-zones'),
+    startScreen: document.getElementById('start-screen'),
+    startBtn: document.getElementById('start-btn'),
+    questionPanel: document.getElementById('question-panel'),
+    questionTarget: document.getElementById('question-target'),
+    pointsBadge: document.getElementById('points-badge'),
+    attemptsIndicator: document.getElementById('attempts-indicator'),
+    feedbackMessage: document.getElementById('feedback-message'),
+    timer: document.getElementById('timer'),
+    currentScore: document.getElementById('current-score'),
+    currentQuestion: document.getElementById('current-question'),
+    totalQuestions: document.getElementById('total-questions'),
     mapContainer: document.getElementById('map-container'),
     reliefMap: document.getElementById('relief-map'),
+    countryOverlay: document.getElementById('country-overlay'),
     labeledOverlay: document.getElementById('labeled-overlay'),
-    placedCount: document.getElementById('placed-count'),
-    totalCount: document.getElementById('total-count'),
-    resetBtn: document.getElementById('reset-btn'),
     victoryModal: document.getElementById('victory-modal'),
+    finalScore: document.getElementById('final-score'),
+    finalTime: document.getElementById('final-time'),
+    finalAccuracy: document.getElementById('final-accuracy'),
+    victoryMessage: document.getElementById('victory-message'),
     playAgainBtn: document.getElementById('play-again-btn'),
     fireworksCanvas: document.getElementById('fireworks-canvas')
 };
@@ -152,399 +153,361 @@ const elements = {
 // ============================================
 
 function init() {
-    // Wait for the map image to load to get proper dimensions
+    // Wait for map to load
     if (elements.reliefMap.complete) {
-        setupGame();
+        setupMap();
     } else {
-        elements.reliefMap.onload = setupGame;
+        elements.reliefMap.onload = setupMap;
     }
 
     // Event listeners
-    elements.resetBtn.addEventListener('click', resetGame);
+    elements.startBtn.addEventListener('click', startQuiz);
     elements.playAgainBtn.addEventListener('click', () => {
         elements.victoryModal.classList.remove('visible');
-        resetGame();
+        resetQuiz();
+        startQuiz();
     });
-
-    // Handle window resize for responsive drop zones
-    window.addEventListener('resize', debounce(updateDropZonePositions, 250));
 }
 
-function setupGame() {
-    createWordBank();
-    createDropZones();
-    state.totalItems = geographyData.length * 2; // Countries + Capitals
-    elements.totalCount.textContent = state.totalItems;
-    updateScore();
+function setupMap() {
+    createCountryRegions();
 }
 
 // ============================================
-// Word Bank Creation
+// Create SVG Country Regions
 // ============================================
 
-function createWordBank() {
-    elements.wordBank.innerHTML = '';
-    state.wordItems = [];
+function createCountryRegions() {
+    elements.countryOverlay.innerHTML = '';
 
-    // Create array of all words (countries and capitals), then shuffle
-    const allWords = [];
+    // Get actual image dimensions for scaling
+    const img = elements.reliefMap;
+    const viewBoxWidth = 640;
+    const viewBoxHeight = 800;
 
-    geographyData.forEach(item => {
-        allWords.push({
-            text: item.country,
+    geographyData.forEach(country => {
+        // Create polygon for country
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', country.polygon);
+        polygon.setAttribute('class', 'country-region');
+        polygon.setAttribute('data-id', country.id);
+        polygon.setAttribute('data-name', country.name);
+        polygon.setAttribute('data-capital', country.capital);
+
+        // Event listeners
+        polygon.addEventListener('click', handleCountryClick);
+        polygon.addEventListener('mouseenter', handleCountryHover);
+        polygon.addEventListener('mouseleave', handleCountryLeave);
+
+        elements.countryOverlay.appendChild(polygon);
+    });
+}
+
+// ============================================
+// Quiz Flow
+// ============================================
+
+function startQuiz() {
+    // Hide start screen
+    elements.startScreen.classList.add('hidden');
+
+    // Generate questions (countries + capitals)
+    state.questions = generateQuestions();
+    state.totalQuestions = state.questions.length;
+    state.currentQuestionIndex = 0;
+    state.score = 0;
+    state.correctAnswers = 0;
+    state.elapsedSeconds = 0;
+    state.completedCountries.clear();
+    state.isPlaying = true;
+
+    // Update UI
+    elements.totalQuestions.textContent = state.totalQuestions;
+    elements.currentScore.textContent = '0';
+    updateTimer();
+
+    // Start timer
+    state.timerInterval = setInterval(() => {
+        state.elapsedSeconds++;
+        updateTimer();
+    }, 1000);
+
+    // Show first question
+    showQuestion();
+}
+
+function generateQuestions() {
+    const questions = [];
+
+    // Add country questions
+    geographyData.forEach(country => {
+        questions.push({
             type: 'country',
-            id: item.id,
-            matchId: `${item.id}-country`
+            target: country.name,
+            answerId: country.id,
+            icon: '🏴'
         });
-        allWords.push({
-            text: item.capital,
+    });
+
+    // Add capital questions
+    geographyData.forEach(country => {
+        questions.push({
             type: 'capital',
-            id: item.id,
-            matchId: `${item.id}-capital`
+            target: country.capital,
+            answerId: country.id,
+            countryName: country.name,
+            icon: '🏛️'
         });
     });
 
-    // Shuffle the words
-    shuffleArray(allWords);
-
-    // Create DOM elements
-    allWords.forEach(word => {
-        const wordEl = document.createElement('div');
-        wordEl.className = `word-item ${word.type}`;
-        wordEl.textContent = word.text;
-        wordEl.dataset.matchId = word.matchId;
-        wordEl.dataset.id = word.id;
-        wordEl.dataset.type = word.type;
-        wordEl.draggable = true;
-
-        // Drag events (desktop)
-        wordEl.addEventListener('dragstart', handleDragStart);
-        wordEl.addEventListener('dragend', handleDragEnd);
-
-        // Touch events (mobile)
-        wordEl.addEventListener('touchstart', handleTouchStart, { passive: false });
-        wordEl.addEventListener('touchmove', handleTouchMove, { passive: false });
-        wordEl.addEventListener('touchend', handleTouchEnd);
-
-        // Click for tap-to-select on mobile
-        wordEl.addEventListener('click', handleWordClick);
-
-        elements.wordBank.appendChild(wordEl);
-        state.wordItems.push(wordEl);
-    });
+    // Shuffle questions
+    return shuffleArray(questions);
 }
 
-// ============================================
-// Drop Zones Creation
-// ============================================
-
-function createDropZones() {
-    elements.dropZones.innerHTML = '';
-    state.dropZones = [];
-
-    geographyData.forEach(item => {
-        // Country drop zone
-        const countryZone = createDropZone(item, 'country', item.countryPos);
-        elements.dropZones.appendChild(countryZone);
-        state.dropZones.push(countryZone);
-
-        // Capital drop zone
-        const capitalZone = createDropZone(item, 'capital', item.capitalPos);
-        elements.dropZones.appendChild(capitalZone);
-        state.dropZones.push(capitalZone);
-    });
-}
-
-function createDropZone(item, type, position) {
-    const zone = document.createElement('div');
-    zone.className = `drop-zone ${type}-zone`;
-    zone.dataset.matchId = `${item.id}-${type}`;
-    zone.dataset.id = item.id;
-    zone.dataset.type = type;
-
-    // Position the zone
-    zone.style.left = `${position.x}%`;
-    zone.style.top = `${position.y}%`;
-    zone.style.transform = 'translate(-50%, -50%)';
-
-    // Add label hint
-    const label = document.createElement('span');
-    label.className = 'zone-label';
-    label.textContent = type === 'country' ? '🏴' : '🏛️';
-    zone.appendChild(label);
-
-    // Drag & drop events
-    zone.addEventListener('dragover', handleDragOver);
-    zone.addEventListener('dragenter', handleDragEnter);
-    zone.addEventListener('dragleave', handleDragLeave);
-    zone.addEventListener('drop', handleDrop);
-
-    // Touch/click events for tap-to-place
-    zone.addEventListener('click', handleZoneClick);
-
-    return zone;
-}
-
-function updateDropZonePositions() {
-    // This function can be used to recalculate positions on resize if needed
-    // For now, percentage-based positioning handles responsiveness
-}
-
-// ============================================
-// Drag & Drop Handlers (Desktop)
-// ============================================
-
-let draggedElement = null;
-
-function handleDragStart(e) {
-    draggedElement = e.target;
-    e.target.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', e.target.dataset.matchId);
-
-    // Clear any tap selection
-    clearSelection();
-}
-
-function handleDragEnd(e) {
-    e.target.classList.remove('dragging');
-    draggedElement = null;
-
-    // Remove hover state from all zones
-    state.dropZones.forEach(zone => zone.classList.remove('hover'));
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-}
-
-function handleDragEnter(e) {
-    e.preventDefault();
-    if (!e.currentTarget.classList.contains('correct')) {
-        e.currentTarget.classList.add('hover');
-    }
-}
-
-function handleDragLeave(e) {
-    e.currentTarget.classList.remove('hover');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    const zone = e.currentTarget;
-    zone.classList.remove('hover');
-
-    if (zone.classList.contains('correct')) return;
-
-    const matchId = e.dataTransfer.getData('text/plain');
-    attemptPlacement(matchId, zone);
-}
-
-// ============================================
-// Touch Handlers (Mobile)
-// ============================================
-
-let touchedElement = null;
-let touchClone = null;
-let touchStartPos = { x: 0, y: 0 };
-
-function handleTouchStart(e) {
-    if (e.target.classList.contains('placed')) return;
-
-    touchedElement = e.target;
-    const touch = e.touches[0];
-    touchStartPos = { x: touch.clientX, y: touch.clientY };
-
-    // Create a clone for visual feedback
-    touchClone = e.target.cloneNode(true);
-    touchClone.style.position = 'fixed';
-    touchClone.style.zIndex = '10000';
-    touchClone.style.pointerEvents = 'none';
-    touchClone.style.opacity = '0.9';
-    touchClone.style.transform = 'scale(1.1)';
-    touchClone.style.left = `${touch.clientX}px`;
-    touchClone.style.top = `${touch.clientY}px`;
-    touchClone.style.translate = '-50% -50%';
-    document.body.appendChild(touchClone);
-
-    e.target.classList.add('dragging');
-    e.preventDefault();
-}
-
-function handleTouchMove(e) {
-    if (!touchClone) return;
-
-    const touch = e.touches[0];
-    touchClone.style.left = `${touch.clientX}px`;
-    touchClone.style.top = `${touch.clientY}px`;
-
-    // Check which drop zone we're over
-    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    state.dropZones.forEach(zone => zone.classList.remove('hover'));
-
-    if (elemBelow && elemBelow.classList.contains('drop-zone') && !elemBelow.classList.contains('correct')) {
-        elemBelow.classList.add('hover');
-    }
-
-    e.preventDefault();
-}
-
-function handleTouchEnd(e) {
-    if (!touchedElement || !touchClone) return;
-
-    const touch = e.changedTouches[0];
-    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-
-    // Clean up
-    touchClone.remove();
-    touchClone = null;
-    touchedElement.classList.remove('dragging');
-    state.dropZones.forEach(zone => zone.classList.remove('hover'));
-
-    // Check if dropped on a valid zone
-    if (elemBelow && elemBelow.classList.contains('drop-zone') && !elemBelow.classList.contains('correct')) {
-        attemptPlacement(touchedElement.dataset.matchId, elemBelow);
-    }
-
-    touchedElement = null;
-}
-
-// ============================================
-// Tap-to-Select Mode (Alternative Mobile UX)
-// ============================================
-
-function handleWordClick(e) {
-    const wordEl = e.target;
-    if (wordEl.classList.contains('placed') || wordEl.classList.contains('dragging')) return;
-
-    // Check for double-tap vs selection
-    if (state.selectedWord === wordEl) {
-        // Double click - deselect
-        clearSelection();
+function showQuestion() {
+    if (state.currentQuestionIndex >= state.totalQuestions) {
+        endQuiz();
         return;
     }
 
-    // Select this word
-    clearSelection();
-    wordEl.classList.add('selected');
-    state.selectedWord = wordEl;
+    const question = state.questions[state.currentQuestionIndex];
+
+    // Reset attempts
+    state.currentAttempts = 3;
+
+    // Update question display
+    const prefix = question.type === 'capital'
+        ? `${question.icon} Where is the capital`
+        : `${question.icon} Where is`;
+
+    elements.questionTarget.textContent = question.target;
+    document.querySelector('.question-prefix').textContent = prefix;
+
+    // Update points badge
+    updatePointsBadge();
+
+    // Update attempts indicator
+    updateAttemptsIndicator();
+
+    // Update progress
+    elements.currentQuestion.textContent = state.currentQuestionIndex + 1;
+
+    // Hide feedback
+    hideFeedback();
+
+    // Reset country highlighting
+    resetCountryHighlighting();
 }
 
-function handleZoneClick(e) {
-    const zone = e.currentTarget;
-    if (zone.classList.contains('correct')) return;
-
-    if (state.selectedWord) {
-        attemptPlacement(state.selectedWord.dataset.matchId, zone);
-        clearSelection();
-    }
+function updatePointsBadge() {
+    const points = state.currentAttempts;
+    elements.pointsBadge.querySelector('.points-value').textContent = points;
+    elements.pointsBadge.className = 'points-badge';
+    if (points === 2) elements.pointsBadge.classList.add('points-2');
+    if (points === 1) elements.pointsBadge.classList.add('points-1');
 }
 
-function clearSelection() {
-    if (state.selectedWord) {
-        state.selectedWord.classList.remove('selected');
-        state.selectedWord = null;
-    }
+function updateAttemptsIndicator() {
+    const dots = elements.attemptsIndicator.querySelectorAll('.attempt-dot');
+    dots.forEach((dot, index) => {
+        dot.className = 'attempt-dot';
+        if (index < state.currentAttempts) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.add('used');
+        }
+    });
 }
 
 // ============================================
-// Placement Logic
+// Country Interaction Handlers
 // ============================================
 
-function attemptPlacement(wordMatchId, zone) {
-    const zoneMatchId = zone.dataset.matchId;
+function handleCountryClick(e) {
+    if (!state.isPlaying) return;
 
-    if (wordMatchId === zoneMatchId) {
-        // Correct placement!
-        handleCorrectPlacement(wordMatchId, zone);
+    const clickedId = e.target.dataset.id;
+    const clickedName = e.target.dataset.name;
+    const question = state.questions[state.currentQuestionIndex];
+
+    if (clickedId === question.answerId) {
+        // Correct answer!
+        handleCorrectAnswer(e.target);
     } else {
-        // Incorrect placement
-        handleIncorrectPlacement(zone);
+        // Wrong answer
+        handleWrongAnswer(e.target, clickedName, question.target);
     }
 }
 
-function handleCorrectPlacement(matchId, zone) {
-    // Mark zone as correct
-    zone.classList.add('correct');
+function handleCorrectAnswer(element) {
+    const question = state.questions[state.currentQuestionIndex];
 
-    // Find and update the word item
-    const wordEl = state.wordItems.find(w => w.dataset.matchId === matchId);
-    if (wordEl) {
-        wordEl.classList.add('placed');
+    // Add points
+    state.score += state.currentAttempts;
+    state.correctAnswers++;
+    elements.currentScore.textContent = state.score;
 
-        // Create enhanced display for correct placement
-        const type = zone.dataset.type;
-        const icon = type === 'country' ? '🏴' : '🏛️';
+    // Mark country as completed
+    state.completedCountries.add(question.answerId);
+    element.classList.add('correct-answer');
 
-        // Build the display with icon and text
-        zone.innerHTML = `<span class="placed-icon">${icon}</span><span class="placed-text">${wordEl.textContent}</span>`;
-    }
+    // Show correct feedback
+    showFeedback(true, `✓ Correct! That's ${question.target}!`);
 
-    // Update state
-    state.correctPlacements.add(matchId);
-    state.placedCount++;
-    updateScore();
-
-    // Check for victory
-    if (state.placedCount >= state.totalItems) {
-        triggerVictory();
-    }
-}
-
-function handleIncorrectPlacement(zone) {
-    zone.classList.add('incorrect');
-
-    // Remove shake animation after it completes
+    // Move to next question after delay
     setTimeout(() => {
-        zone.classList.remove('incorrect');
+        element.classList.remove('correct-answer');
+        element.classList.add('completed');
+        state.currentQuestionIndex++;
+        showQuestion();
+    }, 1200);
+}
+
+function handleWrongAnswer(element, clickedName, targetName) {
+    state.currentAttempts--;
+
+    // Show wrong animation
+    element.classList.add('wrong-answer');
+    setTimeout(() => {
+        element.classList.remove('wrong-answer');
     }, 500);
+
+    if (state.currentAttempts > 0) {
+        // Still have attempts
+        const triesText = state.currentAttempts === 1 ? 'try' : 'tries';
+        showFeedback(false, `Whoops! That's ${clickedName}, not ${targetName}.`, `${state.currentAttempts} ${triesText} left`);
+        updatePointsBadge();
+        updateAttemptsIndicator();
+    } else {
+        // No more attempts - show correct answer and move on
+        showFeedback(false, `The answer was ${targetName}. Moving on...`, 'No points');
+
+        // Highlight correct answer
+        const correctElement = document.querySelector(`[data-id="${state.questions[state.currentQuestionIndex].answerId}"]`);
+        if (correctElement) {
+            correctElement.classList.add('correct-answer');
+            state.completedCountries.add(state.questions[state.currentQuestionIndex].answerId);
+
+            setTimeout(() => {
+                correctElement.classList.remove('correct-answer');
+                correctElement.classList.add('completed');
+                state.currentQuestionIndex++;
+                showQuestion();
+            }, 2000);
+        }
+    }
+}
+
+function handleCountryHover(e) {
+    if (!state.isPlaying) return;
+    // Could add tooltip here if desired
+}
+
+function handleCountryLeave(e) {
+    // Remove any hover effects
 }
 
 // ============================================
-// Score & Victory
+// Feedback Display
 // ============================================
 
-function updateScore() {
-    elements.placedCount.textContent = state.placedCount;
+function showFeedback(isCorrect, message, subMessage = '') {
+    const feedback = elements.feedbackMessage;
+
+    feedback.querySelector('.feedback-icon').textContent = isCorrect ? '✅' : '❌';
+    feedback.querySelector('.feedback-text').textContent = message;
+    feedback.querySelector('.attempts-left').textContent = subMessage;
+    feedback.querySelector('.attempts-left').style.display = subMessage ? 'inline' : 'none';
+
+    feedback.className = 'feedback-message visible';
+    if (isCorrect) feedback.classList.add('correct');
 }
 
-function triggerVictory() {
+function hideFeedback() {
+    elements.feedbackMessage.classList.remove('visible', 'correct');
+}
+
+// ============================================
+// Timer
+// ============================================
+
+function updateTimer() {
+    const minutes = Math.floor(state.elapsedSeconds / 60);
+    const seconds = state.elapsedSeconds % 60;
+    elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// ============================================
+// Quiz End
+// ============================================
+
+function endQuiz() {
+    state.isPlaying = false;
+
+    // Stop timer
+    clearInterval(state.timerInterval);
+
+    // Calculate stats
+    const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
+    const maxScore = state.totalQuestions * 3;
+
+    // Update victory modal
+    elements.finalScore.textContent = state.score;
+    elements.finalTime.textContent = elements.timer.textContent;
+    elements.finalAccuracy.textContent = `${accuracy}%`;
+
+    // Victory message based on performance
+    let message = '';
+    if (state.score >= maxScore * 0.9) {
+        message = '🏆 Outstanding! You\'re a geography master!';
+    } else if (state.score >= maxScore * 0.7) {
+        message = '🌟 Great job! You really know South America!';
+    } else if (state.score >= maxScore * 0.5) {
+        message = '👍 Good effort! Keep practicing!';
+    } else {
+        message = '📚 Keep studying! You\'ll get better!';
+    }
+    elements.victoryMessage.textContent = message;
+
     // Show labeled map overlay
     elements.labeledOverlay.classList.add('visible');
 
     // Start fireworks
     startFireworks();
 
-    // Show victory modal after a brief delay
+    // Show victory modal
     setTimeout(() => {
         elements.victoryModal.classList.add('visible');
-        document.getElementById('final-count').textContent = state.totalItems;
-    }, 1500);
+    }, 1000);
 }
 
-// ============================================
-// Reset Game
-// ============================================
-
-function resetGame() {
+function resetQuiz() {
     // Reset state
-    state.placedCount = 0;
-    state.correctPlacements.clear();
-    state.selectedWord = null;
+    state.currentQuestionIndex = 0;
+    state.score = 0;
+    state.correctAnswers = 0;
+    state.elapsedSeconds = 0;
+    state.completedCountries.clear();
 
     // Reset UI
     elements.labeledOverlay.classList.remove('visible');
-    elements.victoryModal.classList.remove('visible');
+    elements.currentScore.textContent = '0';
+    updateTimer();
 
-    // Recreate word bank and drop zones
-    createWordBank();
-    createDropZones();
+    // Reset all country regions
+    document.querySelectorAll('.country-region').forEach(region => {
+        region.classList.remove('completed', 'correct-answer', 'wrong-answer');
+    });
 
-    updateScore();
-
-    // Stop fireworks if running
     stopFireworks();
+}
+
+function resetCountryHighlighting() {
+    document.querySelectorAll('.country-region').forEach(region => {
+        if (!state.completedCountries.has(region.dataset.id)) {
+            region.classList.remove('correct-answer', 'wrong-answer');
+        }
+    });
 }
 
 // ============================================
@@ -559,7 +522,6 @@ function startFireworks() {
     const canvas = elements.fireworksCanvas;
     const ctx = canvas.getContext('2d');
 
-    // Set canvas size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -582,14 +544,10 @@ function startFireworks() {
 
     Firework.prototype.update = function () {
         this.trail.push({ x: this.x, y: this.y });
-        if (this.trail.length > this.maxTrail) {
-            this.trail.shift();
-        }
-
+        if (this.trail.length > this.maxTrail) this.trail.shift();
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.05; // gravity
-
+        this.vy += 0.05;
         if (this.y <= this.targetY || this.vy >= 0) {
             this.explode();
             this.alive = false;
@@ -608,8 +566,6 @@ function startFireworks() {
             }
         }
         ctx.stroke();
-
-        // Draw head
         ctx.beginPath();
         ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
         ctx.fillStyle = `hsl(${this.hue}, 100%, 80%)`;
@@ -617,8 +573,8 @@ function startFireworks() {
     };
 
     Firework.prototype.explode = function () {
-        const particleCount = 60 + Math.floor(Math.random() * 40);
-        for (let i = 0; i < particleCount; i++) {
+        const count = 60 + Math.floor(Math.random() * 40);
+        for (let i = 0; i < count; i++) {
             particles.push(new Particle(this.x, this.y, this.hue));
         }
     };
@@ -657,43 +613,30 @@ function startFireworks() {
 
     function animate() {
         fireworksAnimationId = requestAnimationFrame(animate);
-
-        // Fade out previous frame
         ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Launch new fireworks
-        if (frameCount % 30 === 0) {
+        if (frameCount % 25 === 0) {
             const x = Math.random() * canvas.width;
             const y = canvas.height;
             const targetY = 100 + Math.random() * (canvas.height * 0.4);
             fireworks.push(new Firework(x, y, targetY));
         }
 
-        // Update and draw fireworks
         for (let i = fireworks.length - 1; i >= 0; i--) {
             fireworks[i].update();
             fireworks[i].draw();
-            if (!fireworks[i].alive) {
-                fireworks.splice(i, 1);
-            }
+            if (!fireworks[i].alive) fireworks.splice(i, 1);
         }
 
-        // Update and draw particles
         for (let i = particles.length - 1; i >= 0; i--) {
             particles[i].update();
             particles[i].draw();
-            if (particles[i].alpha <= 0) {
-                particles.splice(i, 1);
-            }
+            if (particles[i].alpha <= 0) particles.splice(i, 1);
         }
 
         frameCount++;
-
-        // Stop after some time
-        if (frameCount > 600) {
-            stopFireworks();
-        }
+        if (frameCount > 600) stopFireworks();
     }
 
     animate();
@@ -704,12 +647,9 @@ function stopFireworks() {
         cancelAnimationFrame(fireworksAnimationId);
         fireworksAnimationId = null;
     }
-
-    // Clear canvas
     const canvas = elements.fireworksCanvas;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     fireworks = [];
     particles = [];
 }
@@ -719,23 +659,12 @@ function stopFireworks() {
 // ============================================
 
 function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return array;
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+    return arr;
 }
 
 // ============================================
