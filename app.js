@@ -1,112 +1,28 @@
 /**
- * South America Geography Quiz
- * Interactive Map Quiz with Hoverable Country Regions
- * 
- * Features:
- * - Click-to-answer quiz format
- * - Hoverable country regions that light up
- * - 3 attempts per question with decreasing points
- * - Timer and score tracking
- * - Fireworks celebration on completion
+ * Geography Quiz - Multi-Map Support
+ * ===================================
+ * Loads map data from JSON files in the maps/ folder.
+ * Supports multiple maps/regions with automatic discovery.
  */
 
 // ============================================
-// Geography Data with SVG Polygon Coordinates
+// Configuration
 // ============================================
 
-const geographyData = [
-    {
-        id: 'venezuela',
-        name: 'Venezuela',
-        capital: 'Caracas',
-        // Polygon coordinates as percentage of image (will be converted to viewBox coords)
-        polygon: '270,45 320,35 380,50 400,75 380,100 340,110 300,100 270,85'
-    },
-    {
-        id: 'colombia',
-        name: 'Colombia',
-        capital: 'Bogotá',
-        polygon: '180,80 230,60 280,70 300,100 280,140 240,170 200,160 160,130 170,100'
-    },
-    {
-        id: 'ecuador',
-        name: 'Ecuador',
-        capital: 'Quito',
-        polygon: '140,170 180,160 200,175 190,210 160,230 130,210 130,185'
-    },
-    {
-        id: 'peru',
-        name: 'Peru',
-        capital: 'Lima',
-        polygon: '130,210 165,230 200,250 220,290 200,350 170,390 140,380 100,320 90,260 110,220'
-    },
-    {
-        id: 'brazil',
-        name: 'Brazil',
-        capital: 'Brasília',
-        polygon: '280,100 340,110 400,100 450,90 500,110 530,150 520,220 500,280 480,340 440,400 380,440 320,450 280,400 260,340 280,280 300,220 280,160'
-    },
-    {
-        id: 'bolivia',
-        name: 'Bolivia',
-        capital: 'Sucre',
-        polygon: '200,350 260,340 290,380 310,420 280,460 240,470 200,440 180,400'
-    },
-    {
-        id: 'paraguay',
-        name: 'Paraguay',
-        capital: 'Asunción',
-        polygon: '290,420 340,410 370,450 360,500 320,520 280,500 280,460'
-    },
-    {
-        id: 'chile',
-        name: 'Chile',
-        capital: 'Santiago',
-        polygon: '140,380 180,400 200,450 210,520 200,580 185,650 170,720 155,750 140,720 145,650 155,580 165,520 170,450 155,400'
-    },
-    {
-        id: 'argentina',
-        name: 'Argentina',
-        capital: 'Buenos Aires',
-        polygon: '200,450 250,470 290,500 330,520 360,560 350,620 320,680 280,720 250,750 220,720 200,660 180,600 175,540 185,480'
-    },
-    {
-        id: 'uruguay',
-        name: 'Uruguay',
-        capital: 'Montevideo',
-        polygon: '340,540 380,530 400,560 390,600 360,610 340,580'
-    },
-    {
-        id: 'guyana',
-        name: 'Guyana',
-        capital: 'Georgetown',
-        polygon: '380,55 410,45 440,60 450,90 430,110 400,100 385,75'
-    },
-    {
-        id: 'suriname',
-        name: 'Suriname',
-        capital: 'Paramaribo',
-        polygon: '430,45 460,40 485,55 490,85 470,100 450,90 440,60'
-    },
-    {
-        id: 'french-guiana',
-        name: 'French Guiana',
-        capital: 'Cayenne',
-        polygon: '475,40 510,45 520,75 510,95 485,90 480,60'
-    },
-    {
-        id: 'falkland',
-        name: 'Falkland Islands',
-        capital: 'Stanley',
-        polygon: '310,730 350,725 370,745 355,760 320,760 305,745'
-    }
-];
+const CONFIG = {
+    mapsFolder: 'maps',
+    // Fallback data if no JSON files found (for GitHub Pages without server)
+    fallbackMaps: ['south_america']
+};
 
 // ============================================
 // Quiz State
 // ============================================
 
 let state = {
+    availableMaps: [],
+    currentMap: null,
+    mapData: null,
     isPlaying: false,
     questions: [],
     currentQuestionIndex: 0,
@@ -116,7 +32,7 @@ let state = {
     correctAnswers: 0,
     timerInterval: null,
     elapsedSeconds: 0,
-    completedCountries: new Set()
+    completedRegions: new Set()
 };
 
 // ============================================
@@ -124,8 +40,9 @@ let state = {
 // ============================================
 
 const elements = {
+    quizTitle: document.getElementById('quiz-title'),
     startScreen: document.getElementById('start-screen'),
-    startBtn: document.getElementById('start-btn'),
+    mapGrid: document.getElementById('map-grid'),
     questionPanel: document.getElementById('question-panel'),
     questionTarget: document.getElementById('question-target'),
     pointsBadge: document.getElementById('points-badge'),
@@ -138,13 +55,13 @@ const elements = {
     mapContainer: document.getElementById('map-container'),
     reliefMap: document.getElementById('relief-map'),
     countryOverlay: document.getElementById('country-overlay'),
-    labeledOverlay: document.getElementById('labeled-overlay'),
     victoryModal: document.getElementById('victory-modal'),
     finalScore: document.getElementById('final-score'),
     finalTime: document.getElementById('final-time'),
     finalAccuracy: document.getElementById('final-accuracy'),
     victoryMessage: document.getElementById('victory-message'),
     playAgainBtn: document.getElementById('play-again-btn'),
+    chooseMapBtn: document.getElementById('choose-map-btn'),
     fireworksCanvas: document.getElementById('fireworks-canvas')
 };
 
@@ -152,54 +69,198 @@ const elements = {
 // Initialization
 // ============================================
 
-function init() {
-    // Wait for map to load
-    if (elements.reliefMap.complete) {
-        setupMap();
-    } else {
-        elements.reliefMap.onload = setupMap;
-    }
-
+async function init() {
     // Event listeners
-    elements.startBtn.addEventListener('click', startQuiz);
     elements.playAgainBtn.addEventListener('click', () => {
         elements.victoryModal.classList.remove('visible');
         resetQuiz();
         startQuiz();
     });
-}
 
-function setupMap() {
-    createCountryRegions();
+    elements.chooseMapBtn.addEventListener('click', () => {
+        elements.victoryModal.classList.remove('visible');
+        showMapSelection();
+    });
+
+    // Discover available maps
+    await discoverMaps();
 }
 
 // ============================================
-// Create SVG Country Regions
+// Map Discovery
 // ============================================
 
-function createCountryRegions() {
-    elements.countryOverlay.innerHTML = '';
+async function discoverMaps() {
+    const maps = [];
 
-    // Get actual image dimensions for scaling
-    const img = elements.reliefMap;
-    const viewBoxWidth = 640;
-    const viewBoxHeight = 800;
+    // Try to load map index file first
+    try {
+        const response = await fetch(`${CONFIG.mapsFolder}/index.json`);
+        if (response.ok) {
+            const index = await response.json();
+            maps.push(...index.maps);
+        }
+    } catch (e) {
+        // Index file not available, try known maps
+    }
 
-    geographyData.forEach(country => {
-        // Create polygon for country
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', country.polygon);
-        polygon.setAttribute('class', 'country-region');
-        polygon.setAttribute('data-id', country.id);
-        polygon.setAttribute('data-name', country.name);
-        polygon.setAttribute('data-capital', country.capital);
+    // Try loading known/common maps
+    const knownMaps = [
+        'south_america',
+        'north_america',
+        'europe',
+        'asia',
+        'africa',
+        'oceania',
+        'unlabeledReliefMap'
+    ];
 
-        // Event listeners
-        polygon.addEventListener('click', handleCountryClick);
-        polygon.addEventListener('mouseenter', handleCountryHover);
-        polygon.addEventListener('mouseleave', handleCountryLeave);
+    for (const mapName of knownMaps) {
+        if (!maps.find(m => m.id === mapName)) {
+            try {
+                const response = await fetch(`${CONFIG.mapsFolder}/${mapName}_data.json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    maps.push({
+                        id: mapName,
+                        name: data.mapName || mapName.replace(/_/g, ' '),
+                        dataFile: `${mapName}_data.json`,
+                        imageFile: data.imageFile,
+                        regionCount: data.regions?.length || 0
+                    });
+                }
+            } catch (e) {
+                // Map not available
+            }
+        }
+    }
 
-        elements.countryOverlay.appendChild(polygon);
+    // Also check root folder for legacy data
+    try {
+        const response = await fetch('maps/unlabeledReliefMap_data.json');
+        if (response.ok) {
+            const data = await response.json();
+            if (!maps.find(m => m.id === 'unlabeledReliefMap')) {
+                maps.push({
+                    id: 'unlabeledReliefMap',
+                    name: data.mapName || 'South America',
+                    dataFile: 'unlabeledReliefMap_data.json',
+                    imageFile: data.imageFile || 'unlabeledReliefMap.png',
+                    regionCount: data.regions?.length || 0
+                });
+            }
+        }
+    } catch (e) { }
+
+    state.availableMaps = maps;
+    renderMapSelection();
+}
+
+function renderMapSelection() {
+    const grid = elements.mapGrid;
+
+    if (state.availableMaps.length === 0) {
+        grid.innerHTML = `
+            <div class="no-maps-message">
+                <p>📭 No maps found!</p>
+                <p>Run <code>python map_editor.py</code> to create map data.</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = '';
+
+    state.availableMaps.forEach(map => {
+        const card = document.createElement('div');
+        card.className = 'map-card';
+        card.innerHTML = `
+            <div class="map-card-icon">🗺️</div>
+            <div class="map-card-name">${formatMapName(map.name)}</div>
+            <div class="map-card-info">${map.regionCount} regions</div>
+        `;
+        card.addEventListener('click', () => selectMap(map));
+        grid.appendChild(card);
+    });
+}
+
+function formatMapName(name) {
+    return name
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+// ============================================
+// Map Loading
+// ============================================
+
+async function selectMap(mapInfo) {
+    try {
+        // Load the map data
+        const response = await fetch(`${CONFIG.mapsFolder}/${mapInfo.dataFile}`);
+        if (!response.ok) throw new Error('Failed to load map data');
+
+        state.mapData = await response.json();
+        state.currentMap = mapInfo;
+
+        // Update title
+        elements.quizTitle.textContent = `🌎 ${formatMapName(state.mapData.mapName)}`;
+
+        // Load the map image
+        const imagePath = state.mapData.imageFile.includes('/')
+            ? state.mapData.imageFile
+            : `${CONFIG.mapsFolder}/${state.mapData.imageFile}`;
+
+        elements.reliefMap.onload = () => {
+            setupMapOverlay();
+            startQuiz();
+        };
+
+        elements.reliefMap.onerror = () => {
+            // Try alternate paths
+            const altPath = state.mapData.imageFile;
+            elements.reliefMap.src = altPath;
+        };
+
+        elements.reliefMap.src = imagePath;
+
+    } catch (error) {
+        console.error('Error loading map:', error);
+        alert('Failed to load map data. Please ensure the JSON file exists.');
+    }
+}
+
+function setupMapOverlay() {
+    const svg = elements.countryOverlay;
+    svg.innerHTML = '';
+
+    // Set viewBox to match image dimensions
+    const width = state.mapData.imageWidth || elements.reliefMap.naturalWidth;
+    const height = state.mapData.imageHeight || elements.reliefMap.naturalHeight;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // Create polygon for each region
+    state.mapData.regions.forEach(region => {
+        if (region.polygon && region.polygon.length >= 3) {
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+
+            // Convert points array to string format
+            const pointsStr = region.polygon.map(p => `${p.x},${p.y}`).join(' ');
+            polygon.setAttribute('points', pointsStr);
+            polygon.setAttribute('class', 'country-region');
+            polygon.setAttribute('data-id', region.id);
+            polygon.setAttribute('data-name', region.name);
+            polygon.setAttribute('data-capital', region.capital || '');
+
+            polygon.addEventListener('click', handleRegionClick);
+            polygon.addEventListener('mouseenter', handleRegionHover);
+            polygon.addEventListener('mouseleave', handleRegionLeave);
+
+            svg.appendChild(polygon);
+        }
     });
 }
 
@@ -208,17 +269,16 @@ function createCountryRegions() {
 // ============================================
 
 function startQuiz() {
-    // Hide start screen
     elements.startScreen.classList.add('hidden');
 
-    // Generate questions (countries + capitals)
+    // Generate questions from loaded map data
     state.questions = generateQuestions();
     state.totalQuestions = state.questions.length;
     state.currentQuestionIndex = 0;
     state.score = 0;
     state.correctAnswers = 0;
     state.elapsedSeconds = 0;
-    state.completedCountries.clear();
+    state.completedRegions.clear();
     state.isPlaying = true;
 
     // Update UI
@@ -239,28 +299,29 @@ function startQuiz() {
 function generateQuestions() {
     const questions = [];
 
-    // Add country questions
-    geographyData.forEach(country => {
-        questions.push({
-            type: 'country',
-            target: country.name,
-            answerId: country.id,
-            icon: '🏴'
-        });
+    state.mapData.regions.forEach(region => {
+        // Add region/country question
+        if (region.name) {
+            questions.push({
+                type: 'region',
+                target: region.name,
+                answerId: region.id,
+                icon: '🏴'
+            });
+        }
+
+        // Add capital question if capital exists
+        if (region.capital) {
+            questions.push({
+                type: 'capital',
+                target: region.capital,
+                answerId: region.id,
+                regionName: region.name,
+                icon: '🏛️'
+            });
+        }
     });
 
-    // Add capital questions
-    geographyData.forEach(country => {
-        questions.push({
-            type: 'capital',
-            target: country.capital,
-            answerId: country.id,
-            countryName: country.name,
-            icon: '🏛️'
-        });
-    });
-
-    // Shuffle questions
     return shuffleArray(questions);
 }
 
@@ -271,32 +332,22 @@ function showQuestion() {
     }
 
     const question = state.questions[state.currentQuestionIndex];
-
-    // Reset attempts
     state.currentAttempts = 3;
 
     // Update question display
     const prefix = question.type === 'capital'
-        ? `${question.icon} Where is the capital`
+        ? `${question.icon} Where is`
         : `${question.icon} Where is`;
 
     elements.questionTarget.textContent = question.target;
     document.querySelector('.question-prefix').textContent = prefix;
 
-    // Update points badge
     updatePointsBadge();
-
-    // Update attempts indicator
     updateAttemptsIndicator();
-
-    // Update progress
     elements.currentQuestion.textContent = state.currentQuestionIndex + 1;
 
-    // Hide feedback
     hideFeedback();
-
-    // Reset country highlighting
-    resetCountryHighlighting();
+    resetRegionHighlighting();
 }
 
 function updatePointsBadge() {
@@ -320,10 +371,10 @@ function updateAttemptsIndicator() {
 }
 
 // ============================================
-// Country Interaction Handlers
+// Region Interaction
 // ============================================
 
-function handleCountryClick(e) {
+function handleRegionClick(e) {
     if (!state.isPlaying) return;
 
     const clickedId = e.target.dataset.id;
@@ -331,10 +382,8 @@ function handleCountryClick(e) {
     const question = state.questions[state.currentQuestionIndex];
 
     if (clickedId === question.answerId) {
-        // Correct answer!
         handleCorrectAnswer(e.target);
     } else {
-        // Wrong answer
         handleWrongAnswer(e.target, clickedName, question.target);
     }
 }
@@ -342,19 +391,15 @@ function handleCountryClick(e) {
 function handleCorrectAnswer(element) {
     const question = state.questions[state.currentQuestionIndex];
 
-    // Add points
     state.score += state.currentAttempts;
     state.correctAnswers++;
     elements.currentScore.textContent = state.score;
 
-    // Mark country as completed
-    state.completedCountries.add(question.answerId);
+    state.completedRegions.add(question.answerId);
     element.classList.add('correct-answer');
 
-    // Show correct feedback
     showFeedback(true, `✓ Correct! That's ${question.target}!`);
 
-    // Move to next question after delay
     setTimeout(() => {
         element.classList.remove('correct-answer');
         element.classList.add('completed');
@@ -366,27 +411,21 @@ function handleCorrectAnswer(element) {
 function handleWrongAnswer(element, clickedName, targetName) {
     state.currentAttempts--;
 
-    // Show wrong animation
     element.classList.add('wrong-answer');
-    setTimeout(() => {
-        element.classList.remove('wrong-answer');
-    }, 500);
+    setTimeout(() => element.classList.remove('wrong-answer'), 500);
 
     if (state.currentAttempts > 0) {
-        // Still have attempts
         const triesText = state.currentAttempts === 1 ? 'try' : 'tries';
         showFeedback(false, `Whoops! That's ${clickedName}, not ${targetName}.`, `${state.currentAttempts} ${triesText} left`);
         updatePointsBadge();
         updateAttemptsIndicator();
     } else {
-        // No more attempts - show correct answer and move on
-        showFeedback(false, `The answer was ${targetName}. Moving on...`, 'No points');
+        showFeedback(false, `The answer was ${targetName}.`, 'No points');
 
-        // Highlight correct answer
         const correctElement = document.querySelector(`[data-id="${state.questions[state.currentQuestionIndex].answerId}"]`);
         if (correctElement) {
             correctElement.classList.add('correct-answer');
-            state.completedCountries.add(state.questions[state.currentQuestionIndex].answerId);
+            state.completedRegions.add(state.questions[state.currentQuestionIndex].answerId);
 
             setTimeout(() => {
                 correctElement.classList.remove('correct-answer');
@@ -398,22 +437,20 @@ function handleWrongAnswer(element, clickedName, targetName) {
     }
 }
 
-function handleCountryHover(e) {
-    if (!state.isPlaying) return;
-    // Could add tooltip here if desired
+function handleRegionHover(e) {
+    // Optional: Show tooltip
 }
 
-function handleCountryLeave(e) {
-    // Remove any hover effects
+function handleRegionLeave(e) {
+    // Optional: Hide tooltip
 }
 
 // ============================================
-// Feedback Display
+// Feedback
 // ============================================
 
 function showFeedback(isCorrect, message, subMessage = '') {
     const feedback = elements.feedbackMessage;
-
     feedback.querySelector('.feedback-icon').textContent = isCorrect ? '✅' : '❌';
     feedback.querySelector('.feedback-text').textContent = message;
     feedback.querySelector('.attempts-left').textContent = subMessage;
@@ -443,25 +480,20 @@ function updateTimer() {
 
 function endQuiz() {
     state.isPlaying = false;
-
-    // Stop timer
     clearInterval(state.timerInterval);
 
-    // Calculate stats
     const accuracy = Math.round((state.correctAnswers / state.totalQuestions) * 100);
     const maxScore = state.totalQuestions * 3;
 
-    // Update victory modal
     elements.finalScore.textContent = state.score;
     elements.finalTime.textContent = elements.timer.textContent;
     elements.finalAccuracy.textContent = `${accuracy}%`;
 
-    // Victory message based on performance
     let message = '';
     if (state.score >= maxScore * 0.9) {
         message = '🏆 Outstanding! You\'re a geography master!';
     } else if (state.score >= maxScore * 0.7) {
-        message = '🌟 Great job! You really know South America!';
+        message = '🌟 Great job! You really know your geography!';
     } else if (state.score >= maxScore * 0.5) {
         message = '👍 Good effort! Keep practicing!';
     } else {
@@ -469,32 +501,23 @@ function endQuiz() {
     }
     elements.victoryMessage.textContent = message;
 
-    // Show labeled map overlay
-    elements.labeledOverlay.classList.add('visible');
-
-    // Start fireworks
     startFireworks();
 
-    // Show victory modal
     setTimeout(() => {
         elements.victoryModal.classList.add('visible');
     }, 1000);
 }
 
 function resetQuiz() {
-    // Reset state
     state.currentQuestionIndex = 0;
     state.score = 0;
     state.correctAnswers = 0;
     state.elapsedSeconds = 0;
-    state.completedCountries.clear();
+    state.completedRegions.clear();
 
-    // Reset UI
-    elements.labeledOverlay.classList.remove('visible');
     elements.currentScore.textContent = '0';
     updateTimer();
 
-    // Reset all country regions
     document.querySelectorAll('.country-region').forEach(region => {
         region.classList.remove('completed', 'correct-answer', 'wrong-answer');
     });
@@ -502,16 +525,24 @@ function resetQuiz() {
     stopFireworks();
 }
 
-function resetCountryHighlighting() {
+function showMapSelection() {
+    state.isPlaying = false;
+    clearInterval(state.timerInterval);
+    stopFireworks();
+
+    elements.startScreen.classList.remove('hidden');
+}
+
+function resetRegionHighlighting() {
     document.querySelectorAll('.country-region').forEach(region => {
-        if (!state.completedCountries.has(region.dataset.id)) {
+        if (!state.completedRegions.has(region.dataset.id)) {
             region.classList.remove('correct-answer', 'wrong-answer');
         }
     });
 }
 
 // ============================================
-// Fireworks Animation
+// Fireworks
 // ============================================
 
 let fireworksAnimationId = null;
@@ -655,7 +686,7 @@ function stopFireworks() {
 }
 
 // ============================================
-// Utility Functions
+// Utilities
 // ============================================
 
 function shuffleArray(array) {
@@ -668,7 +699,7 @@ function shuffleArray(array) {
 }
 
 // ============================================
-// Start the App
+// Start
 // ============================================
 
 document.addEventListener('DOMContentLoaded', init);

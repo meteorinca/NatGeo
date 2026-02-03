@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>South America Geography Quiz</title>
-    <meta name="description"
-        content="Test your knowledge of South American countries and capitals with this interactive map quiz!">
+    <title>Geography Quiz</title>
+    <meta name="description" content="Interactive geography quiz - learn countries, capitals, and more!">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +20,7 @@
         <!-- Header with Stats -->
         <header class="header">
             <div class="header-left">
-                <h1>🌎 South America Quiz</h1>
+                <h1 id="quiz-title">🌎 Geography Quiz</h1>
             </div>
             <div class="stats-bar">
                 <div class="stat-item timer-stat">
@@ -35,7 +34,7 @@
                 <div class="stat-item progress-stat">
                     <span class="stat-icon">📍</span>
                     <span class="stat-value"><span id="current-question">0</span>/<span
-                            id="total-questions">28</span></span>
+                            id="total-questions">0</span></span>
                 </div>
             </div>
         </header>
@@ -48,7 +47,7 @@
             </div>
             <div class="question-content">
                 <span class="question-prefix">Where is</span>
-                <span class="question-target" id="question-target">Venezuela</span>
+                <span class="question-target" id="question-target">...</span>
                 <span class="question-suffix">?</span>
             </div>
             <div class="attempts-indicator" id="attempts-indicator">
@@ -61,41 +60,33 @@
         <!-- Feedback Message -->
         <div class="feedback-message" id="feedback-message">
             <span class="feedback-icon">❌</span>
-            <span class="feedback-text">Whoops! That's Chile, not Venezuela.</span>
+            <span class="feedback-text">Whoops! That's not it.</span>
             <span class="attempts-left">2 tries left</span>
         </div>
 
         <!-- Map Section -->
         <main class="map-section">
             <div class="map-container" id="map-container">
-                <img src="unlabeledReliefMap.png" alt="South America Relief Map" class="relief-map" id="relief-map">
+                <img src="" alt="Map" class="relief-map" id="relief-map">
 
-                <!-- SVG Overlay for clickable countries -->
-                <svg class="country-overlay" id="country-overlay" viewBox="0 0 640 800"
-                    preserveAspectRatio="xMidYMid meet">
-                    <!-- Countries will be defined as paths -->
+                <!-- SVG Overlay for clickable regions -->
+                <svg class="country-overlay" id="country-overlay" preserveAspectRatio="xMidYMid meet">
+                    <!-- Regions loaded dynamically -->
                 </svg>
-
-                <!-- Labeled map overlay (shows on completion) -->
-                <img src="LabeledMap.png" alt="Labeled Map" class="labeled-map-overlay" id="labeled-overlay">
             </div>
         </main>
 
-        <!-- Start Screen -->
+        <!-- Map Selection Screen -->
         <div class="start-screen" id="start-screen">
             <div class="start-content">
-                <div class="start-icon">🌎</div>
-                <h2>South America Geography Quiz</h2>
-                <p>Test your knowledge of countries and capitals!</p>
-                <ul class="quiz-info">
-                    <li>🏴 14 Countries</li>
-                    <li>🏛️ 14 Capitals</li>
-                    <li>⭐ 3 attempts per question</li>
-                    <li>🎯 Up to 84 points possible!</li>
-                </ul>
-                <button class="btn-primary btn-large" id="start-btn">
-                    <span class="btn-icon">▶️</span> Start Quiz
-                </button>
+                <div class="start-icon">🌍</div>
+                <h2>Geography Quiz</h2>
+                <p>Choose a map to start learning!</p>
+
+                <div class="map-grid" id="map-grid">
+                    <!-- Maps loaded dynamically -->
+                    <div class="loading-maps">Loading available maps...</div>
+                </div>
             </div>
         </div>
 
@@ -119,9 +110,14 @@
                     </div>
                 </div>
                 <p class="victory-message" id="victory-message">Great job!</p>
-                <button class="btn-primary" id="play-again-btn">
-                    <span class="btn-icon">🔄</span> Play Again
-                </button>
+                <div class="victory-buttons">
+                    <button class="btn btn-primary" id="play-again-btn">
+                        <span class="btn-icon">🔄</span> Play Again
+                    </button>
+                    <button class="btn btn-secondary" id="choose-map-btn">
+                        <span class="btn-icon">🗺️</span> Choose Map
+                    </button>
+                </div>
             </div>
         </div>
     </div>

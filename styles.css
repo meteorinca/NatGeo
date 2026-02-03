@@ -1,11 +1,8 @@
 /* ============================================
-   South America Geography Quiz - Styles
-   Quiz Mode with Hoverable Map Regions
+   Geography Quiz - Multi-Map Support Styles
    ============================================ */
 
-/* CSS Custom Properties (Design Tokens) */
 :root {
-    /* Color palette - Vibrant & Engaging */
     --primary-gradient-start: #1a5f4a;
     --primary-gradient-end: #2d8f6a;
     --accent-gold: #f59e0b;
@@ -16,7 +13,6 @@
     --error-red: #ef4444;
     --warning-orange: #f97316;
 
-    /* Neutrals */
     --bg-dark: #0f172a;
     --bg-card: rgba(30, 41, 59, 0.95);
     --bg-glass: rgba(255, 255, 255, 0.1);
@@ -24,7 +20,6 @@
     --text-muted: #94a3b8;
     --border-subtle: rgba(255, 255, 255, 0.1);
 
-    /* Spacing */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 16px;
@@ -32,7 +27,6 @@
     --space-xl: 32px;
     --space-2xl: 48px;
 
-    /* Typography */
     --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -41,20 +35,17 @@
     --font-size-2xl: 2rem;
     --font-size-3xl: 2.5rem;
 
-    /* Border radius */
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 20px;
     --radius-xl: 28px;
     --radius-full: 50px;
 
-    /* Transitions */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s ease;
     --transition-slow: 0.5s ease;
 }
 
-/* Reset & Base */
 *,
 *::before,
 *::after {
@@ -77,7 +68,6 @@ body {
     line-height: 1.5;
 }
 
-/* Fireworks Canvas */
 #fireworks-canvas {
     position: fixed;
     top: 0;
@@ -88,7 +78,6 @@ body {
     z-index: 9999;
 }
 
-/* App Container */
 .app-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -140,7 +129,6 @@ body {
 
 .stat-value {
     font-weight: 600;
-    font-size: var(--font-size-base);
 }
 
 .timer-stat .stat-value {
@@ -159,7 +147,6 @@ body {
     justify-content: center;
     gap: var(--space-lg);
     flex-wrap: wrap;
-    position: relative;
     backdrop-filter: blur(10px);
 }
 
@@ -224,7 +211,6 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: none;
 }
 
 .attempts-indicator {
@@ -252,7 +238,7 @@ body {
     border-color: var(--error-red);
 }
 
-/* Feedback Message */
+/* Feedback */
 .feedback-message {
     display: flex;
     align-items: center;
@@ -294,7 +280,7 @@ body {
     border-radius: var(--radius-sm);
 }
 
-/* Map Section */
+/* Map */
 .map-section {
     flex: 1;
     display: flex;
@@ -363,57 +349,21 @@ body {
     pointer-events: none;
 }
 
-.labeled-map-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    opacity: 0;
-    transition: opacity var(--transition-slow);
-    pointer-events: none;
-}
-
-.labeled-map-overlay.visible {
-    opacity: 1;
-}
-
-/* Country Labels (shown on hover) */
-.country-label {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    pointer-events: none;
-    transform: translate(-50%, -100%);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-    white-space: nowrap;
-    z-index: 100;
-}
-
-.country-label.visible {
-    opacity: 1;
-}
-
-/* Start Screen */
+/* Start Screen / Map Selection */
 .start-screen {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 23, 42, 0.95);
+    background: rgba(15, 23, 42, 0.98);
     backdrop-filter: blur(10px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     padding: var(--space-md);
+    overflow-y: auto;
 }
 
 .start-screen.hidden {
@@ -424,11 +374,12 @@ body {
 
 .start-content {
     text-align: center;
-    max-width: 400px;
+    max-width: 600px;
+    width: 100%;
 }
 
 .start-icon {
-    font-size: 5rem;
+    font-size: 4rem;
     margin-bottom: var(--space-lg);
     animation: float 3s ease-in-out infinite;
 }
@@ -448,20 +399,60 @@ body {
     margin-bottom: var(--space-xl);
 }
 
-.quiz-info {
-    list-style: none;
+/* Map Selection Grid */
+.map-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-xl);
-    text-align: left;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
 }
 
-.quiz-info li {
+.map-card {
     background: var(--bg-glass);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.map-card:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2);
+}
+
+.map-card-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-sm);
+}
+
+.map-card-name {
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs);
+}
+
+.map-card-info {
     font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.loading-maps,
+.no-maps-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-muted);
+}
+
+.no-maps-message code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
 }
 
 /* Victory Modal */
@@ -541,7 +532,6 @@ body {
     font-size: var(--font-size-sm);
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .victory-message {
@@ -550,8 +540,15 @@ body {
     font-size: var(--font-size-lg);
 }
 
+.victory-buttons {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 /* Buttons */
-.btn-primary {
+.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -564,6 +561,9 @@ body {
     border: none;
     cursor: pointer;
     transition: all var(--transition-fast);
+}
+
+.btn-primary {
     background: linear-gradient(135deg, var(--success-green) 0%, #16a34a 100%);
     color: white;
     box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
@@ -574,9 +574,14 @@ body {
     box-shadow: 0 8px 30px rgba(34, 197, 94, 0.5);
 }
 
-.btn-large {
-    font-size: var(--font-size-lg);
-    padding: var(--space-lg) var(--space-2xl);
+.btn-secondary {
+    background: var(--bg-glass);
+    color: var(--text-light);
+    border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .btn-icon {
@@ -654,7 +659,7 @@ body {
     }
 }
 
-/* Mobile Responsive */
+/* Mobile */
 @media (max-width: 768px) {
     .header {
         flex-direction: column;
@@ -691,6 +696,10 @@ body {
         flex-direction: column;
         gap: var(--space-md);
     }
+
+    .map-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 480px) {
@@ -716,7 +725,7 @@ body {
         font-size: var(--font-size-xl);
     }
 
-    .quiz-info {
+    .map-grid {
         grid-template-columns: 1fr;
     }
 }

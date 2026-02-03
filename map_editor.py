@@ -1,50 +1,52 @@
 """
-Map Polygon & Point Editor
-===========================
-A web-based tool for drawing polygons on a map image and exporting 
-coordinates in a format compatible with the South America Geography Quiz.
+Map Polygon & Point Editor v2.0
+================================
+A web-based tool for drawing polygons on map images and exporting 
+metadata as JSON files for the Geography Quiz system.
+
+Features:
+- Draw polygons for countries/regions
+- Place points for capitals/cities
+- Export as JSON file for quiz app
+- Support for multiple maps
 
 Usage:
-    python map_editor.py
+    python map_editor.py [image_file.png]
+    
+    If no image specified, it will list available PNGs in the maps/ folder.
 
-Then open http://localhost:5000 in your browser.
-
-Controls:
-- Click to add polygon points
-- Press 'Enter' or click 'Finish Polygon' to complete a polygon
-- Right-click to place a capital point
-- Press 'Escape' to cancel current polygon
-- Click on a shape to select/delete it
-
-Output: JavaScript code ready to paste into app.js
+Output: JSON file saved to maps/{name}_data.json
 """
 
 import os
+import sys
 import json
 import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 import threading
 import urllib.parse
+from datetime import datetime
 
 # Configuration
 PORT = 5000
-IMAGE_FILE = "unlabeledReliefMap.png"  # The map image to annotate
+MAPS_DIR = "maps"
 
-# HTML/JS for the editor interface
-EDITOR_HTML = """
+# Ensure maps directory exists
+os.makedirs(MAPS_DIR, exist_ok=True)
+
+
+def get_editor_html(image_file, map_name):
+    """Generate the editor HTML with the specified image."""
+    return """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Region Editor</title>
+    <title>Map Editor - """ + map_name + """</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -55,60 +57,75 @@ EDITOR_HTML = """
         }
         
         .sidebar {
-            width: 350px;
+            width: 380px;
             background: #16213e;
             padding: 20px;
             overflow-y: auto;
             max-height: 100vh;
             border-right: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
         }
         
         h1 {
-            font-size: 1.4rem;
-            margin-bottom: 10px;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
             color: #00d9ff;
+        }
+        
+        .map-name {
+            color: #22c55e;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            padding: 8px;
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
         
         .instructions {
             background: #0f3460;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            line-height: 1.5;
         }
         
         .instructions h3 {
             color: #00d9ff;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
         }
         
         .instructions kbd {
             background: #1a1a2e;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
             font-family: monospace;
+            font-size: 0.85em;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-weight: 600;
             color: #94a3b8;
+            font-size: 0.85rem;
         }
         
         input, select {
             width: 100%;
-            padding: 10px;
+            padding: 8px 10px;
             border: 1px solid #0f3460;
             border-radius: 6px;
             background: #1a1a2e;
             color: #eee;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         
         input:focus, select:focus {
@@ -117,103 +134,78 @@ EDITOR_HTML = """
         }
         
         .btn {
-            padding: 10px 16px;
+            padding: 8px 14px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             transition: all 0.2s;
-            margin-right: 8px;
-            margin-bottom: 8px;
+            margin-right: 6px;
+            margin-bottom: 6px;
         }
         
-        .btn-primary {
-            background: #00d9ff;
-            color: #1a1a2e;
-        }
+        .btn-primary { background: #00d9ff; color: #1a1a2e; }
+        .btn-primary:hover { background: #00b8d9; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary { background: #4b5563; color: white; }
+        .btn-secondary:hover { background: #374151; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
         
-        .btn-primary:hover {
-            background: #00b8d9;
-        }
-        
-        .btn-success {
-            background: #22c55e;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #16a34a;
-        }
-        
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
-        .btn-secondary {
-            background: #4b5563;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #374151;
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 1rem;
         }
         
         .shapes-list {
-            margin-top: 20px;
+            flex: 1;
+            overflow-y: auto;
+            margin: 15px 0;
         }
         
         .shapes-list h3 {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #00d9ff;
+            font-size: 0.95rem;
+            position: sticky;
+            top: 0;
+            background: #16213e;
+            padding: 5px 0;
         }
         
         .shape-item {
             background: #0f3460;
-            padding: 10px;
+            padding: 8px 10px;
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 0.85rem;
         }
         
-        .shape-item:hover {
-            background: #1a4a7a;
-        }
+        .shape-item:hover { background: #1a4a7a; }
+        .shape-item.selected { border: 2px solid #00d9ff; }
         
-        .shape-item.selected {
-            border: 2px solid #00d9ff;
-        }
-        
-        .shape-info {
-            flex: 1;
-        }
-        
-        .shape-name {
-            font-weight: 600;
-        }
-        
-        .shape-type {
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
+        .shape-info { flex: 1; }
+        .shape-name { font-weight: 600; }
+        .shape-type { font-size: 0.75rem; color: #94a3b8; }
         
         .shape-delete {
             background: #ef4444;
             border: none;
             color: white;
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 0.9rem;
         }
         
         .canvas-container {
@@ -223,64 +215,80 @@ EDITOR_HTML = """
             align-items: flex-start;
             padding: 20px;
             overflow: auto;
+            background: #0d1117;
         }
         
         #canvas {
             border: 2px solid #0f3460;
             border-radius: 8px;
             cursor: crosshair;
+            max-width: 100%;
+            height: auto;
         }
         
         .export-section {
-            margin-top: 20px;
-            padding-top: 20px;
+            padding-top: 15px;
             border-top: 1px solid #0f3460;
         }
         
-        .export-output {
-            width: 100%;
-            height: 200px;
-            background: #1a1a2e;
-            border: 1px solid #0f3460;
-            border-radius: 6px;
-            padding: 10px;
+        .export-section h3 {
             color: #22c55e;
-            font-family: monospace;
-            font-size: 0.8rem;
-            resize: vertical;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
         }
         
         .status-bar {
             background: #0f3460;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .status-bar .mode { color: #00d9ff; font-weight: 600; }
+        .current-points { margin-top: 4px; font-size: 0.8rem; color: #94a3b8; }
+        
+        .success-message {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.5);
             padding: 10px;
             border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        
+        .success-message.visible { display: block; }
+        
+        .file-path {
+            font-family: monospace;
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+        
+        .load-section {
             margin-bottom: 15px;
-            font-size: 0.9rem;
-        }
-        
-        .status-bar .mode {
-            color: #00d9ff;
-            font-weight: 600;
-        }
-        
-        .current-points {
-            margin-top: 5px;
-            font-size: 0.8rem;
-            color: #94a3b8;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #0f3460;
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <h1>🗺️ Map Region Editor</h1>
+        <div class="map-name">📍 Editing: <strong>""" + map_name + """</strong></div>
+        
+        <div class="load-section">
+            <button class="btn btn-warning" id="loadExistingBtn">📂 Load Existing Data</button>
+        </div>
         
         <div class="instructions">
             <h3>Controls</h3>
             <p><strong>Left Click:</strong> Add polygon point</p>
-            <p><strong>Right Click:</strong> Place capital point</p>
-            <p><kbd>Enter</kbd> Finish current polygon</p>
-            <p><kbd>Escape</kbd> Cancel current polygon</p>
-            <p><kbd>Delete</kbd> Remove selected shape</p>
+            <p><strong>Right Click:</strong> Place capital/city point</p>
+            <p><kbd>Enter</kbd> Finish polygon | <kbd>Esc</kbd> Cancel | <kbd>Del</kbd> Delete selected</p>
         </div>
         
         <div class="status-bar">
@@ -296,14 +304,14 @@ EDITOR_HTML = """
         <div class="form-group">
             <label for="shapeType">Type</label>
             <select id="shapeType">
-                <option value="country">🏴 Country</option>
-                <option value="capital">🏛️ Capital</option>
+                <option value="region">🏴 Country/Region</option>
+                <option value="capital">🏛️ Capital/City</option>
             </select>
         </div>
         
         <div class="form-group">
-            <label for="countryId">Country ID (lowercase, e.g., "venezuela")</label>
-            <input type="text" id="countryId" placeholder="country-id">
+            <label for="regionId">Region ID (links capital to country)</label>
+            <input type="text" id="regionId" placeholder="e.g., venezuela">
         </div>
         
         <div>
@@ -317,11 +325,14 @@ EDITOR_HTML = """
         </div>
         
         <div class="export-section">
-            <h3 style="color: #22c55e; margin-bottom: 10px;">Export</h3>
-            <button class="btn btn-success" id="exportBtn">📋 Generate Code</button>
-            <button class="btn btn-secondary" id="copyBtn">Copy to Clipboard</button>
+            <h3>💾 Save & Export</h3>
+            <button class="btn btn-success btn-large" id="saveJsonBtn">💾 Save JSON File</button>
             <button class="btn btn-danger" id="clearAllBtn">🗑️ Clear All</button>
-            <textarea class="export-output" id="exportOutput" readonly placeholder="Click 'Generate Code' to see output..."></textarea>
+            
+            <div class="success-message" id="successMessage">
+                ✅ Saved successfully to:<br>
+                <span class="file-path" id="savedPath"></span>
+            </div>
         </div>
     </div>
     
@@ -330,6 +341,9 @@ EDITOR_HTML = """
     </div>
     
     <script>
+        const MAP_NAME = '""" + map_name + """';
+        const IMAGE_FILE = '""" + image_file + """';
+        
         // State
         let shapes = [];
         let currentPolygon = [];
@@ -346,25 +360,24 @@ EDITOR_HTML = """
             canvas.height = img.height;
             redraw();
         };
-        img.src = '""" + IMAGE_FILE + """';
+        img.src = '/image/' + IMAGE_FILE;
         
         // Elements
         const modeEl = document.getElementById('mode');
         const currentPointsEl = document.getElementById('currentPoints');
         const shapeNameEl = document.getElementById('shapeName');
         const shapeTypeEl = document.getElementById('shapeType');
-        const countryIdEl = document.getElementById('countryId');
+        const regionIdEl = document.getElementById('regionId');
         const shapesListEl = document.getElementById('shapesList');
         const shapeCountEl = document.getElementById('shapeCount');
-        const exportOutput = document.getElementById('exportOutput');
         
         // Auto-generate ID from name
         shapeNameEl.addEventListener('input', () => {
             const name = shapeNameEl.value;
-            countryIdEl.value = name.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z-]/g, '');
+            regionIdEl.value = name.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         });
         
-        // Canvas click handler
+        // Canvas click - add polygon point
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
@@ -372,14 +385,13 @@ EDITOR_HTML = """
             const x = Math.round((e.clientX - rect.left) * scaleX);
             const y = Math.round((e.clientY - rect.top) * scaleY);
             
-            // Add point to current polygon
             currentPolygon.push({ x, y });
             isDrawing = true;
             updateStatus();
             redraw();
         });
         
-        // Right-click for capital points
+        // Right-click - place capital point
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
@@ -388,9 +400,8 @@ EDITOR_HTML = """
             const x = Math.round((e.clientX - rect.left) * scaleX);
             const y = Math.round((e.clientY - rect.top) * scaleY);
             
-            // Create a single-point "polygon" for capital
-            const name = shapeNameEl.value || 'Unnamed Capital';
-            const id = countryIdEl.value || 'unnamed';
+            const name = shapeNameEl.value || 'Unnamed';
+            const id = regionIdEl.value || name.toLowerCase().replace(/\\s+/g, '-');
             
             shapes.push({
                 type: 'capital',
@@ -400,28 +411,25 @@ EDITOR_HTML = """
             });
             
             shapeNameEl.value = '';
-            countryIdEl.value = '';
+            regionIdEl.value = '';
             updateShapesList();
             redraw();
         });
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                finishPolygon();
-            } else if (e.key === 'Escape') {
-                cancelPolygon();
-            } else if (e.key === 'Delete' && selectedShapeIndex >= 0) {
-                deleteShape(selectedShapeIndex);
-            }
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'Enter') finishPolygon();
+            else if (e.key === 'Escape') cancelPolygon();
+            else if (e.key === 'Delete' && selectedShapeIndex >= 0) deleteShape(selectedShapeIndex);
         });
         
-        // Buttons
+        // Button handlers
         document.getElementById('finishPolygon').addEventListener('click', finishPolygon);
         document.getElementById('cancelPolygon').addEventListener('click', cancelPolygon);
-        document.getElementById('exportBtn').addEventListener('click', generateExport);
-        document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
+        document.getElementById('saveJsonBtn').addEventListener('click', saveJson);
         document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+        document.getElementById('loadExistingBtn').addEventListener('click', loadExisting);
         
         function finishPolygon() {
             if (currentPolygon.length < 3) {
@@ -431,7 +439,7 @@ EDITOR_HTML = """
             
             const name = shapeNameEl.value || 'Unnamed';
             const type = shapeTypeEl.value;
-            const id = countryIdEl.value || name.toLowerCase().replace(/\\s+/g, '-');
+            const id = regionIdEl.value || name.toLowerCase().replace(/\\s+/g, '-');
             
             shapes.push({
                 type: type,
@@ -443,7 +451,7 @@ EDITOR_HTML = """
             currentPolygon = [];
             isDrawing = false;
             shapeNameEl.value = '';
-            countryIdEl.value = '';
+            regionIdEl.value = '';
             updateStatus();
             updateShapesList();
             redraw();
@@ -464,7 +472,7 @@ EDITOR_HTML = """
         }
         
         function clearAll() {
-            if (confirm('Are you sure you want to clear all shapes?')) {
+            if (confirm('Clear all shapes?')) {
                 shapes = [];
                 currentPolygon = [];
                 selectedShapeIndex = -1;
@@ -478,10 +486,10 @@ EDITOR_HTML = """
         function updateStatus() {
             if (isDrawing) {
                 modeEl.textContent = `Drawing (${currentPolygon.length} points)`;
-                currentPointsEl.textContent = 'Press Enter to finish, Escape to cancel';
+                currentPointsEl.textContent = 'Enter to finish, Escape to cancel';
             } else {
                 modeEl.textContent = 'Ready';
-                currentPointsEl.textContent = 'Click to start drawing a polygon';
+                currentPointsEl.textContent = 'Click to start drawing';
             }
         }
         
@@ -492,14 +500,14 @@ EDITOR_HTML = """
             shapes.forEach((shape, index) => {
                 const div = document.createElement('div');
                 div.className = 'shape-item' + (index === selectedShapeIndex ? ' selected' : '');
+                const icon = shape.type === 'capital' ? '🏛️' : '🏴';
                 div.innerHTML = `
                     <div class="shape-info">
-                        <div class="shape-name">${shape.type === 'capital' ? '🏛️' : '🏴'} ${shape.name}</div>
-                        <div class="shape-type">${shape.type} | ${shape.points.length} points | id: ${shape.id}</div>
+                        <div class="shape-name">${icon} ${shape.name}</div>
+                        <div class="shape-type">${shape.type} | ${shape.points.length} pts | id: ${shape.id}</div>
                     </div>
                     <button class="shape-delete" data-index="${index}">×</button>
                 `;
-                
                 div.addEventListener('click', (e) => {
                     if (e.target.classList.contains('shape-delete')) {
                         deleteShape(parseInt(e.target.dataset.index));
@@ -509,7 +517,6 @@ EDITOR_HTML = """
                         redraw();
                     }
                 });
-                
                 shapesListEl.appendChild(div);
             });
         }
@@ -523,7 +530,7 @@ EDITOR_HTML = """
                 const isSelected = index === selectedShapeIndex;
                 
                 if (shape.type === 'capital' || shape.points.length === 1) {
-                    // Draw capital as a circle
+                    // Capital point
                     const pt = shape.points[0];
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y, isSelected ? 12 : 8, 0, Math.PI * 2);
@@ -534,14 +541,14 @@ EDITOR_HTML = """
                     ctx.stroke();
                     
                     // Label
-                    ctx.font = 'bold 14px sans-serif';
+                    ctx.font = 'bold 12px sans-serif';
                     ctx.fillStyle = 'white';
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 3;
-                    ctx.strokeText(shape.name, pt.x + 15, pt.y + 5);
-                    ctx.fillText(shape.name, pt.x + 15, pt.y + 5);
+                    ctx.strokeText(shape.name, pt.x + 12, pt.y + 4);
+                    ctx.fillText(shape.name, pt.x + 12, pt.y + 4);
                 } else {
-                    // Draw polygon
+                    // Polygon
                     ctx.beginPath();
                     ctx.moveTo(shape.points[0].x, shape.points[0].y);
                     shape.points.forEach(pt => ctx.lineTo(pt.x, pt.y));
@@ -553,10 +560,10 @@ EDITOR_HTML = """
                     ctx.lineWidth = isSelected ? 3 : 2;
                     ctx.stroke();
                     
-                    // Draw vertices
+                    // Vertices
                     shape.points.forEach(pt => {
                         ctx.beginPath();
-                        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                        ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
                         ctx.fillStyle = '#fff';
                         ctx.fill();
                     });
@@ -564,7 +571,7 @@ EDITOR_HTML = """
                     // Centroid label
                     const cx = shape.points.reduce((s, p) => s + p.x, 0) / shape.points.length;
                     const cy = shape.points.reduce((s, p) => s + p.y, 0) / shape.points.length;
-                    ctx.font = 'bold 14px sans-serif';
+                    ctx.font = 'bold 12px sans-serif';
                     ctx.fillStyle = 'white';
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 3;
@@ -575,7 +582,7 @@ EDITOR_HTML = """
                 }
             });
             
-            // Draw current polygon in progress
+            // Draw current polygon
             if (currentPolygon.length > 0) {
                 ctx.beginPath();
                 ctx.moveTo(currentPolygon[0].x, currentPolygon[0].y);
@@ -586,10 +593,9 @@ EDITOR_HTML = """
                 ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Draw vertices
                 currentPolygon.forEach((pt, i) => {
                     ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                    ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
                     ctx.fillStyle = i === 0 ? '#22c55e' : '#00d9ff';
                     ctx.fill();
                     ctx.strokeStyle = 'white';
@@ -599,57 +605,97 @@ EDITOR_HTML = """
             }
         }
         
-        function generateExport() {
-            // Group shapes by country ID
-            const countries = {};
+        function saveJson() {
+            // Build export data
+            const regions = {};
             
             shapes.forEach(shape => {
-                if (!countries[shape.id]) {
-                    countries[shape.id] = {
+                if (!regions[shape.id]) {
+                    regions[shape.id] = {
                         id: shape.id,
                         name: '',
                         capital: '',
-                        polygon: '',
+                        polygon: [],
                         capitalPoint: null
                     };
                 }
                 
-                if (shape.type === 'country') {
-                    countries[shape.id].name = shape.name;
-                    countries[shape.id].polygon = shape.points.map(p => `${p.x},${p.y}`).join(' ');
+                if (shape.type === 'region') {
+                    regions[shape.id].name = shape.name;
+                    regions[shape.id].polygon = shape.points;
                 } else if (shape.type === 'capital') {
-                    countries[shape.id].capital = shape.name;
-                    countries[shape.id].capitalPoint = shape.points[0];
+                    regions[shape.id].capital = shape.name;
+                    regions[shape.id].capitalPoint = shape.points[0];
                 }
             });
             
-            // Generate JavaScript array
-            let output = 'const geographyData = [\\n';
+            const exportData = {
+                mapName: MAP_NAME,
+                imageFile: IMAGE_FILE,
+                imageWidth: canvas.width,
+                imageHeight: canvas.height,
+                createdAt: new Date().toISOString(),
+                regions: Object.values(regions)
+            };
             
-            Object.values(countries).forEach(country => {
-                output += '    {\\n';
-                output += `        id: '${country.id}',\\n`;
-                output += `        name: '${country.name}',\\n`;
-                output += `        capital: '${country.capital}',\\n`;
-                output += `        polygon: '${country.polygon}'`;
-                if (country.capitalPoint) {
-                    output += `,\\n        capitalPoint: { x: ${country.capitalPoint.x}, y: ${country.capitalPoint.y} }`;
+            // Send to server to save
+            fetch('/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(exportData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('savedPath').textContent = data.path;
+                    document.getElementById('successMessage').classList.add('visible');
+                    setTimeout(() => {
+                        document.getElementById('successMessage').classList.remove('visible');
+                    }, 5000);
+                } else {
+                    alert('Error saving: ' + data.error);
                 }
-                output += '\\n    },\\n';
-            });
-            
-            output += '];';
-            
-            exportOutput.value = output;
+            })
+            .catch(err => alert('Error: ' + err));
         }
         
-        function copyToClipboard() {
-            exportOutput.select();
-            document.execCommand('copy');
-            alert('Copied to clipboard!');
+        function loadExisting() {
+            fetch('/load/' + MAP_NAME)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('No existing data found for this map.');
+                    return;
+                }
+                
+                shapes = [];
+                data.regions.forEach(region => {
+                    if (region.polygon && region.polygon.length > 0) {
+                        shapes.push({
+                            type: 'region',
+                            name: region.name,
+                            id: region.id,
+                            points: region.polygon
+                        });
+                    }
+                    if (region.capitalPoint) {
+                        shapes.push({
+                            type: 'capital',
+                            name: region.capital,
+                            id: region.id,
+                            points: [region.capitalPoint]
+                        });
+                    }
+                });
+                
+                updateShapesList();
+                redraw();
+                alert('Loaded ' + shapes.length + ' shapes!');
+            })
+            .catch(err => alert('Error loading: ' + err));
         }
         
-        // Initial update
+        // Init
         updateStatus();
         updateShapesList();
     </script>
@@ -657,73 +703,185 @@ EDITOR_HTML = """
 </html>
 """
 
+
 class EditorHandler(SimpleHTTPRequestHandler):
-    """Custom handler to serve the editor and map image."""
+    """Custom handler for the map editor."""
+    
+    image_file = None
+    map_name = None
     
     def do_GET(self):
         if self.path == '/' or self.path == '/index.html':
-            # Serve the editor HTML
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(EDITOR_HTML.encode())
-        elif self.path == '/' + IMAGE_FILE or self.path == '/' + urllib.parse.quote(IMAGE_FILE):
-            # Serve the map image
-            self.serve_image()
+            self.send_html(get_editor_html(self.image_file, self.map_name))
+        elif self.path.startswith('/image/'):
+            self.serve_image(self.path[7:])
+        elif self.path.startswith('/load/'):
+            self.load_json(self.path[6:])
         else:
-            # Try to serve other files
             super().do_GET()
     
-    def serve_image(self):
-        """Serve the map image file."""
-        try:
-            with open(IMAGE_FILE, 'rb') as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header('Content-type', 'image/png')
-            self.send_header('Content-Length', len(content))
-            self.end_headers()
-            self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_error(404, f'Image file not found: {IMAGE_FILE}')
+    def do_POST(self):
+        if self.path == '/save':
+            self.save_json()
+        else:
+            self.send_error(404)
+    
+    def send_html(self, content):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(content.encode())
+    
+    def send_json(self, data):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+    
+    def serve_image(self, filename):
+        # Try maps folder first, then current directory
+        paths = [
+            os.path.join(MAPS_DIR, filename),
+            filename
+        ]
+        
+        for path in paths:
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-type', 'image/png')
+                self.send_header('Content-Length', len(content))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+        
+        self.send_error(404, f'Image not found: {filename}')
+    
+    def save_json(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode())
+        
+        # Save to maps folder
+        filename = f"{data['mapName']}_data.json"
+        filepath = os.path.join(MAPS_DIR, filename)
+        
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        self.send_json({'success': True, 'path': filepath})
+    
+    def load_json(self, map_name):
+        filename = f"{map_name}_data.json"
+        filepath = os.path.join(MAPS_DIR, filename)
+        
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+            self.send_json(data)
+        else:
+            self.send_json({'error': 'Not found'})
     
     def log_message(self, format, *args):
-        """Suppress logging for cleaner output."""
         pass
 
 
-def main():
-    """Start the map editor server."""
-    # Check if image exists
-    if not os.path.exists(IMAGE_FILE):
-        print(f"❌ Error: Image file '{IMAGE_FILE}' not found!")
-        print(f"   Make sure you're running this from the same directory as the map image.")
-        return
+def find_maps():
+    """Find all PNG files that could be maps."""
+    maps = []
     
+    # Check maps folder
+    if os.path.exists(MAPS_DIR):
+        for f in os.listdir(MAPS_DIR):
+            if f.lower().endswith('.png'):
+                maps.append((os.path.join(MAPS_DIR, f), f))
+    
+    # Check current directory
+    for f in os.listdir('.'):
+        if f.lower().endswith('.png') and 'labeled' not in f.lower():
+            maps.append((f, f))
+    
+    return maps
+
+
+def main():
     print("=" * 60)
-    print("🗺️  MAP REGION EDITOR")
+    print("🗺️  MAP REGION EDITOR v2.0")
     print("=" * 60)
-    print(f"\n📍 Image file: {IMAGE_FILE}")
-    print(f"🌐 Starting server at: http://localhost:{PORT}")
-    print("\n📝 Instructions:")
-    print("   1. Left-click to add polygon points")
-    print("   2. Press Enter to finish a polygon")
-    print("   3. Right-click to place a capital point")
-    print("   4. Click 'Generate Code' to get JavaScript output")
-    print("\n🛑 Press Ctrl+C to stop the server\n")
+    
+    # Determine which image to use
+    if len(sys.argv) > 1:
+        image_file = sys.argv[1]
+        if not os.path.exists(image_file):
+            print(f"❌ Error: Image file '{image_file}' not found!")
+            return
+    else:
+        # List available maps
+        maps = find_maps()
+        
+        if not maps:
+            print("❌ No PNG files found!")
+            print(f"   Place map images in the '{MAPS_DIR}/' folder or current directory.")
+            return
+        
+        print("\n📍 Available maps:")
+        for i, (path, name) in enumerate(maps, 1):
+            # Check if data file exists
+            map_name = Path(name).stem
+            data_file = os.path.join(MAPS_DIR, f"{map_name}_data.json")
+            status = "✅ has data" if os.path.exists(data_file) else "📝 no data yet"
+            print(f"   {i}. {name} ({status})")
+        
+        print(f"\n   Enter number (1-{len(maps)}), or image path:")
+        
+        try:
+            choice = input("   > ").strip()
+            if choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(maps):
+                    image_file = maps[idx][0]
+                else:
+                    print("Invalid choice!")
+                    return
+            else:
+                image_file = choice
+                if not os.path.exists(image_file):
+                    print(f"❌ File not found: {image_file}")
+                    return
+        except KeyboardInterrupt:
+            print("\n\n👋 Cancelled.")
+            return
+    
+    # Extract map name from filename
+    map_name = Path(image_file).stem
+    
+    # Set handler class variables
+    EditorHandler.image_file = os.path.basename(image_file)
+    EditorHandler.map_name = map_name
+    
+    # Copy image to maps folder if not already there
+    maps_path = os.path.join(MAPS_DIR, os.path.basename(image_file))
+    if not os.path.exists(maps_path) and os.path.exists(image_file):
+        import shutil
+        shutil.copy(image_file, maps_path)
+        print(f"\n📁 Copied image to: {maps_path}")
+    
+    print(f"\n📍 Editing: {map_name}")
+    print(f"🖼️  Image: {image_file}")
+    print(f"🌐 Server: http://localhost:{PORT}")
+    print(f"\n💾 Data will be saved to: {MAPS_DIR}/{map_name}_data.json")
+    print("\n🛑 Press Ctrl+C to stop\n")
     
     # Open browser
-    def open_browser():
-        webbrowser.open(f'http://localhost:{PORT}')
-    
-    threading.Timer(1.0, open_browser).start()
+    threading.Timer(1.0, lambda: webbrowser.open(f'http://localhost:{PORT}')).start()
     
     # Start server
     server = HTTPServer(('localhost', PORT), EditorHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n\n👋 Server stopped. Goodbye!")
+        print("\n\n👋 Server stopped.")
         server.shutdown()
 
 
